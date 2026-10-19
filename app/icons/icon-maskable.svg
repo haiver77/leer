@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lalo y las Sílabas">
+  <title>Lalo y las Sílabas (maskable)</title>
+  <!-- Full-bleed background so the maskable safe-zone (inner 80%) is always covered -->
+  <rect width="512" height="512" fill="#4cc9f0"/>
+  <!-- Mascot kept within the central 60% safe area -->
+  <g transform="translate(146 136) scale(1.85)">
+    <rect x="30" y="40" width="60" height="60" rx="26" fill="#ffffff"/>
+    <rect x="30" y="40" width="60" height="60" rx="26" fill="none" stroke="#2f9fd0" stroke-width="3"/>
+    <ellipse cx="60" cy="78" rx="20" ry="16" fill="#eaf7ff"/>
+    <line x1="44" y1="40" x2="40" y2="22" stroke="#2f9fd0" stroke-width="4"/>
+    <circle cx="40" cy="20" r="5" fill="#ff5d8f"/>
+    <line x1="76" y1="40" x2="80" y2="22" stroke="#2f9fd0" stroke-width="4"/>
+    <circle cx="80" cy="20" r="5" fill="#ffd166"/>
+    <circle cx="50" cy="60" r="7" fill="#1d2b53"/>
+    <circle cx="70" cy="60" r="7" fill="#1d2b53"/>
+    <path d="M50 78 q10 8 20 0" fill="none" stroke="#1d2b53" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>

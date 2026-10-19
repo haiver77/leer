@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#4cc9f0" />
+    <meta name="description" content="Lalo y las Sílabas — un juego para aprender a leer en español." />
+    <title>Lalo y las Sílabas</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <!-- ============ Welcome screen ============ -->
+      <section id="welcome-screen" class="screen welcome" aria-labelledby="welcome-title">
+        <div id="welcome-mascot" class="mascot mascot-big" aria-hidden="false"></div>
+        <h1 id="welcome-title" class="title">Lalo y las Sílabas</h1>
+        <p class="subtitle">Mira, dila en voz alta y ¡celebra con Lalo!</p>
+        <button id="start-btn" type="button" class="btn btn-start">
+          Empezar <span aria-hidden="true">▶️</span>
+        </button>
+        <button id="welcome-dashboard-btn" type="button" class="text-link" aria-label="Para adultos: panel">
+          <span aria-hidden="true">⚙️</span> Para adultos
+        </button>
+      </section>
+
+      <!-- ============ Onboarding ============ -->
+      <section id="onboarding-screen" class="screen onboarding" aria-labelledby="onboarding-title" hidden>
+        <h2 id="onboarding-title" class="sr-only">Cómo jugar</h2>
+        <div id="onboarding-mascot" class="mascot mascot-big" aria-hidden="true"></div>
+        <div class="onboarding-card">
+          <div id="onboarding-demo" class="syllable-card syllable-card-demo">Pa</div>
+          <p id="onboarding-text" class="onboarding-text" role="status" aria-live="polite">
+            Esta es tu sílaba.
+          </p>
+        </div>
+        <div class="onboarding-controls">
+          <button id="onboarding-next-btn" type="button" class="btn btn-next">
+            Siguiente <span aria-hidden="true">➡️</span>
+          </button>
+          <button id="onboarding-skip-btn" type="button" class="text-link" aria-label="Saltar la introducción">
+            Saltar
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ World map ============ -->
+      <section id="map-screen" class="screen map" aria-labelledby="map-title" hidden>
+        <header class="map-top">
+          <h2 id="map-title" class="screen-title">El mapa de Lalo</h2>
+          <div class="map-top-actions">
+            <button id="map-stickers-btn" type="button" class="icon-btn" aria-label="Álbum de pegatinas">
+              <span aria-hidden="true">🏅</span>
+            </button>
+            <button id="map-dashboard-btn" type="button" class="icon-btn icon-btn-quiet" aria-label="Para adultos: panel">
+              <span aria-hidden="true">⚙️</span>
+            </button>
+          </div>
+        </header>
+        <div id="daily-goal" class="daily-goal" aria-label="Meta de hoy">
+          <span class="daily-goal-label" aria-hidden="true">Meta de hoy</span>
+          <div class="daily-goal-bar"><div id="daily-goal-fill" class="daily-goal-fill"></div></div>
+        </div>
+        <div id="map-grid" class="map-grid" role="list" aria-label="Niveles"></div>
+      </section>
+
+      <!-- ============ Game / play screen ============ -->
+      <section id="game-screen" class="screen game" aria-labelledby="game-heading" hidden>
+        <h2 id="game-heading" class="sr-only">Jugar</h2>
+
+        <header class="game-top">
+          <button id="back-btn" type="button" class="icon-btn icon-btn-quiet" aria-label="Volver al mapa">
+            <span aria-hidden="true">🗺️</span>
+          </button>
+          <div class="scores">
+            <span class="score" aria-label="Estrellas">
+              <span aria-hidden="true">⭐</span> <span id="stars-value">0</span>
+            </span>
+          </div>
+        </header>
+
+        <div id="item-art" class="item-art" aria-hidden="true"></div>
+
+        <!-- Syllable view -->
+        <div id="syllable-card" class="syllable-card" role="img" aria-label="Sílaba">Pa</div>
+
+        <!-- Word view (parts + whole) -->
+        <div id="word-view" class="word-view" hidden>
+          <div class="word-parts">
+            <button id="word-part-0" type="button" class="word-tile" aria-label="Escuchar primera parte">Pa</button>
+            <span class="word-plus" aria-hidden="true">+</span>
+            <button id="word-part-1" type="button" class="word-tile" aria-label="Escuchar segunda parte">To</button>
+          </div>
+          <div id="word-whole" class="word-whole" role="img" aria-label="Palabra">pato</div>
+        </div>
+
+        <p id="feedback" class="feedback" role="status" aria-live="polite" data-kind="neutral">
+          Di la sílaba que ves 😊
+        </p>
+
+        <div class="mascot-row">
+          <div id="game-mascot" class="mascot mascot-medium" aria-hidden="true"></div>
+        </div>
+
+        <!-- Primary action: the mic (F8) -->
+        <div class="primary-action">
+          <button
+            id="speak-btn"
+            type="button"
+            class="btn btn-speak btn-primary-mic"
+            aria-label="Hablar: di la sílaba al micrófono"
+            aria-pressed="false"
+          >
+            <span aria-hidden="true">🎤</span> <span class="btn-label">Hablar</span>
+          </button>
+          <button id="confirm-btn" type="button" class="btn btn-confirm" aria-label="Un adulto confirma que lo dijo">
+            <span aria-hidden="true">✅</span> <span class="btn-label">¡Lo dije!</span>
+          </button>
+        </div>
+
+        <!-- Secondary, de-emphasised controls -->
+        <div class="secondary-controls">
+          <button id="listen-btn" type="button" class="chip-btn" aria-label="Escuchar la sílaba">
+            <span aria-hidden="true">🔊</span> <span class="btn-label">Escuchar</span>
+          </button>
+          <button id="next-btn" type="button" class="chip-btn" aria-label="Siguiente">
+            <span aria-hidden="true">➡️</span> <span class="btn-label">Siguiente</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ End-of-level summary ============ -->
+      <section id="summary-screen" class="screen summary" aria-labelledby="summary-title" hidden>
+        <div id="summary-mascot" class="mascot mascot-big" aria-hidden="true"></div>
+        <h2 id="summary-title" class="screen-title">¡Nivel completado!</h2>
+        <p id="summary-stars" class="summary-stars">🌟 x 0</p>
+        <div id="summary-sticker" class="summary-sticker" aria-label="Pegatina ganada"></div>
+        <p id="summary-unlock" class="summary-unlock">¡Nuevo nivel desbloqueado!</p>
+        <button id="summary-continue-btn" type="button" class="btn btn-start">
+          Al mapa <span aria-hidden="true">🗺️</span>
+        </button>
+      </section>
+
+      <!-- ============ Sticker book ============ -->
+      <section id="stickers-screen" class="screen stickers" aria-labelledby="stickers-title" hidden>
+        <header class="map-top">
+          <button id="stickers-back-btn" type="button" class="icon-btn icon-btn-quiet" aria-label="Volver al mapa">
+            <span aria-hidden="true">🗺️</span>
+          </button>
+          <h2 id="stickers-title" class="screen-title">Mi álbum</h2>
+          <span class="spacer" aria-hidden="true"></span>
+        </header>
+        <div id="sticker-grid" class="sticker-grid" role="list" aria-label="Pegatinas"></div>
+      </section>
+
+      <!-- ============ Adult dashboard ============ -->
+      <section id="dashboard-screen" class="screen dashboard" aria-labelledby="dashboard-title" hidden>
+        <header class="map-top">
+          <button id="dashboard-back-btn" type="button" class="icon-btn icon-btn-quiet" aria-label="Volver">
+            <span aria-hidden="true">⬅️</span>
+          </button>
+          <h2 id="dashboard-title" class="screen-title">Panel para adultos</h2>
+          <span class="spacer" aria-hidden="true"></span>
+        </header>
+
+        <div class="dash-stats">
+          <div class="dash-stat"><span class="dash-num" id="dash-mastered">0/0</span><span class="dash-label">Sílabas dominadas</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-stars">0</span><span class="dash-label">Estrellas</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-streak">0</span><span class="dash-label">Racha</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-best">0</span><span class="dash-label">Mejor racha</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-stickers">0</span><span class="dash-label">Pegatinas</span></div>
+        </div>
+
+        <div class="dash-section">
+          <h3>Sílabas difíciles</h3>
+          <p id="dash-trouble" class="dash-trouble">Ninguna todavía 👍</p>
+        </div>
+
+        <div class="dash-section">
+          <h3>Ajustes</h3>
+          <fieldset class="difficulty" aria-label="Dificultad">
+            <legend class="difficulty-legend">Dificultad</legend>
+            <button id="diff-facil" type="button" class="chip is-active" aria-pressed="true">Fácil</button>
+            <button id="diff-normal" type="button" class="chip" aria-pressed="false">Normal</button>
+          </fieldset>
+          <label class="toggle">
+            <input id="veryyoung-toggle" type="checkbox" />
+            <span>Modo muy pequeño (sin texto)</span>
+          </label>
+          <button id="reset-btn" type="button" class="btn btn-danger" aria-label="Borrar todo el progreso">
+            Borrar progreso <span aria-hidden="true">🗑️</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Adult gate overlay -->
+    <div id="gate-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="gate-prompt" hidden>
+      <div class="overlay-card">
+        <p id="gate-prompt" class="gate-prompt">¿Cuánto es 4 + 3?</p>
+        <div id="gate-choices" class="gate-choices"></div>
+        <button id="gate-cancel" type="button" class="text-link">Cancelar</button>
+      </div>
+    </div>
+
+    <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
