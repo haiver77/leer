@@ -186,11 +186,13 @@ function playFanfare() {
 }
 
 // Rotating celebration variations (F14.1): vary origin + burst so success
-// never feels identical. Each returns params for burstConfetti.
+// never feels identical. Each returns params for burstConfetti. Iteration 7
+// (D5 / AC-K5) enriches the per-word burst (more particles + wider spread)
+// while staying bounded/60fps-friendly; the milestone stays visibly bigger.
 const VARIATIONS = [
-  { originY: 0.35, count: 120, spread: 1 },
-  { originY: 0.5, count: 90, spread: 1.3 },
-  { originY: 0.25, count: 150, spread: 0.85 },
+  { originY: 0.35, count: 150, spread: 1.15 },
+  { originY: 0.5, count: 120, spread: 1.45 },
+  { originY: 0.25, count: 170, spread: 1 },
 ];
 let variationIndex = 0;
 
@@ -209,7 +211,11 @@ export function play(opts = {}) {
   }
   haptics();
   if (milestone) haptics();
-  if (!prefersReducedMotion()) {
+  // The confetti layer needs a DOM (canvas). Skip it when there is none (e.g.
+  // Node unit tests) or when reduced-motion is requested; sound + haptics above
+  // already fired as the non-motion feedback.
+  const hasDom = typeof document !== "undefined";
+  if (hasDom && !prefersReducedMotion()) {
     const v = milestone
       ? { originY: 0.3, count: 220, spread: 1.4 }
       : VARIATIONS[variationIndex % VARIATIONS.length];

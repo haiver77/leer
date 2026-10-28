@@ -76,8 +76,18 @@ test("AC-I1.1/I1.2: every level is a word level with a non-empty pool of invento
       assert.equal(typeof w, "string", `${lvl.id} pool holds word strings`);
       assert.ok(inv.has(w), `${lvl.id} word "${w}" is in the inventory`);
     }
-    assert.ok(lvl.goal > 0 && lvl.goal <= 5, `${lvl.id} goal in 1..5`);
     assert.ok(typeof lvl.artId === "string" && lvl.artId.length > 0);
+  }
+});
+
+test("AC-K1.1/K1.2: every level's goal is 10 and every pool has >= 10 words", () => {
+  const levels = all();
+  for (const lvl of levels) {
+    assert.equal(lvl.goal, 10, `${lvl.id} goal === 10 (min(10, poolSize))`);
+    assert.ok(
+      lvl.pool().length >= 10,
+      `${lvl.id} pool has ${lvl.pool().length} words (need >= 10)`
+    );
   }
 });
 

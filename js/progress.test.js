@@ -30,6 +30,29 @@ test("freshState has a complete v2 shape", () => {
   assert.equal(s.dailyGoal.target, DEFAULT_DAILY_TARGET);
 });
 
+test("AC-K7.2/K3.3: freshState defaults autoRead ON and voicePref null", () => {
+  const s = freshState();
+  assert.equal(s.autoRead, true, "autoRead defaults ON");
+  assert.equal(s.voicePref, null, "voicePref defaults to Automática (null)");
+});
+
+test("AC-K7.2/K3.3: migrate fills autoRead + voicePref for older v2 states", () => {
+  // An older v2 blob with neither key set → both default in place.
+  const v2 = migrate({ version: 2, stars: 3, difficulty: "normal" });
+  assert.equal(v2.autoRead, true);
+  assert.equal(v2.voicePref, null);
+  assert.equal(v2.stars, 3, "other fields are undisturbed");
+  assert.equal(v2.difficulty, "normal");
+  // A saved value is preserved, not overwritten.
+  const saved = migrate({ version: 2, autoRead: false, voicePref: "urn:voice:x" });
+  assert.equal(saved.autoRead, false);
+  assert.equal(saved.voicePref, "urn:voice:x");
+  // A v1 blob also gets the defaults.
+  const fromV1 = migrate({ difficulty: "normal", bestStreak: 4 });
+  assert.equal(fromV1.autoRead, true);
+  assert.equal(fromV1.voicePref, null);
+});
+
 test("migrate: v1 blob preserves difficulty + bestStreak, defaults the rest", () => {
   const v2 = migrate({ difficulty: "normal", bestStreak: 7 });
   assert.equal(v2.version, 2);

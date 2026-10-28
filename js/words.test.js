@@ -391,6 +391,61 @@ test("forBand setup: load the real shipped CSV inventory", async () => {
   assert.ok(res.two.length >= 50 && res.three.length >= 50 && res.four.length >= 20);
 });
 
+// ---- Iteration 7 — every 2-syllable band has >=10 words (AC-K2.1/K1.2) -----
+test("AC-K2.1: each 2-syllable band (forBand) has >= 10 words from the live CSV", () => {
+  const bands = [
+    ["pal-2-abiertas-1", { count: 2, tiers: [1], special: false }],
+    ["pal-2-abiertas-2", { count: 2, tiers: [2], special: false }],
+    ["pal-2-abiertas-3", { count: 2, tiers: [3], special: false }],
+    ["pal-2-especiales", { count: 2, special: true }],
+  ];
+  for (const [id, spec] of bands) {
+    const pool = forBand(spec);
+    assert.ok(pool.length >= 10, `${id} has ${pool.length} words (need >= 10)`);
+  }
+});
+
+test("AC-K1.2: every band (2/3/4) yields >= 10 words from the live CSV", () => {
+  const bands = [
+    { count: 2, tiers: [1], special: false },
+    { count: 2, tiers: [2], special: false },
+    { count: 2, tiers: [3], special: false },
+    { count: 2, special: true },
+    { count: 3, tiers: [1, 2], special: false },
+    { count: 3, tiers: [3], special: false },
+    { count: 3, special: true },
+    { count: 4, special: false },
+    { count: 4, special: true },
+  ];
+  for (const spec of bands) {
+    assert.ok(
+      forBand(spec).length >= 10,
+      `band ${JSON.stringify(spec)} has ${forBand(spec).length} (need >= 10)`
+    );
+  }
+});
+
+// ---- Iteration 7 — the embedded WORDS fallback keeps each 2-syllable band ---
+// non-empty AND >= 10 offline / file:// (AC-K2.5). This asserts against the
+// fallback catalog directly (not the loaded CSV), so it holds offline.
+test("AC-K2.5: the embedded WORDS fallback has >= 10 words in each 2-syllable band", () => {
+  const bandOf = (w) => {
+    const tier = hardestConsonantTier(w.parts);
+    const special =
+      tier === 4 || hasDigraph(w.parts) || hasClosedSyllable(w.parts);
+    if (special) return "especiales";
+    return `open-${tier}`;
+  };
+  const counts = {};
+  for (const w of WORDS) {
+    const b = bandOf(w);
+    counts[b] = (counts[b] || 0) + 1;
+  }
+  for (const key of ["open-1", "open-2", "open-3", "especiales"]) {
+    assert.ok((counts[key] || 0) >= 10, `fallback band ${key}: ${counts[key] || 0} (need >= 10)`);
+  }
+});
+
 test("forBand: open tier filter returns only open-CV, non-digraph words of that tier", () => {
   const t1 = forBand({ count: 2, tiers: [1], special: false });
   assert.ok(t1.length > 0, "tier-1 open band non-empty");

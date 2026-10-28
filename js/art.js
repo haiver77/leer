@@ -516,6 +516,28 @@ const WORD_ART = {
      <circle cx="50" cy="50" r="6" fill="#fff"/>`
   ),
 
+  // ---- iteration-7 additions (2-syllable) ----
+  "word-nene": svgEl(
+    "nene",
+    `<circle cx="50" cy="46" r="16" fill="#ffd1b3"/>
+     <path d="M40 34 q10 -8 20 0 q-2 -8 -10 -8 t-10 8z" fill="#8d5524"/>
+     <circle cx="44" cy="46" r="2.5" fill="#1d2b53"/><circle cx="56" cy="46" r="2.5" fill="#1d2b53"/>
+     <path d="M44 54 q6 4 12 0" stroke="#1d2b53" stroke-width="2" fill="none"/>
+     <circle cx="42" cy="52" r="2" fill="#ffb3c1"/><circle cx="58" cy="52" r="2" fill="#ffb3c1"/>
+     <path d="M34 80 q16 -16 32 0z" fill="#4cc9f0"/>`
+  ),
+  "word-nudo": svgEl(
+    "nudo",
+    `<path d="M32 42 q18 -6 22 10 q4 14 -14 14 q-14 0 -8 -14 q6 -12 28 -4 q14 6 8 20" fill="none" stroke="#b07a3c" stroke-width="7" stroke-linecap="round"/>`
+  ),
+  "word-coche": svgEl(
+    "coche",
+    `<path d="M22 58 h56 l-6 -14 q-2 -4 -6 -4 h-30 q-4 0 -6 4z" fill="#ef476f"/>
+     <rect x="20" y="56" width="60" height="12" rx="4" fill="#e5383b"/>
+     <path d="M34 50 h14 v-8 h-10z M52 42 h12 l6 8 h-18z" fill="#cfe0ff"/>
+     <circle cx="34" cy="70" r="7" fill="#1d2b53"/><circle cx="66" cy="70" r="7" fill="#1d2b53"/>`
+  ),
+
   // ---- iteration-6 additions (3-syllable) ----
   "word-bebida": svgEl(
     "bebida",
@@ -710,6 +732,13 @@ const WORD_ART = {
     `<rect x="30" y="30" width="40" height="40" rx="4" fill="#6b4226"/>
      <path d="M50 30 v40 M30 50 h40" stroke="#3b2414" stroke-width="3"/>
      <path d="M40 40 h4 M56 40 h4 M40 60 h4 M56 60 h4" stroke="#8d5524" stroke-width="3"/>`
+  ),
+  "word-mantequilla": svgEl(
+    "mantequilla",
+    `<path d="M28 54 l12 -10 h32 v22 h-44z" fill="#ffd166"/>
+     <path d="M28 54 h44 v12 h-44z" fill="#ffe08a"/>
+     <path d="M40 44 h32 l-4 -6 h-24z" fill="#fff3c4"/>
+     <rect x="34" y="58" width="16" height="4" fill="#e8a900"/>`
   ),
 };
 

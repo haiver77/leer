@@ -5,7 +5,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { pickSpanishVoice, hasSpanishVoice } from "./speech.js";
+import {
+  pickSpanishVoice,
+  hasSpanishVoice,
+  voiceId,
+  resolveVoice,
+  availableVoices,
+  setPreferredVoice,
+  getPreferredVoice,
+} from "./speech.js";
 
 const v = (lang, name = "", extra = {}) => ({ lang, name, ...extra });
 
@@ -67,4 +75,58 @@ test("hasSpanishVoice reflects presence of any Spanish voice", () => {
   assert.equal(hasSpanishVoice([v("en-US"), v("fr-FR")]), false);
   assert.equal(hasSpanishVoice([]), false);
   assert.equal(hasSpanishVoice(null), false);
+});
+
+// ===========================================================================
+// Iteration 7 — voice picker helpers (D3 / AC-K3): voiceId, resolveVoice,
+// availableVoices, setPreferredVoice/getPreferredVoice. All pure/Node-safe.
+// ===========================================================================
+
+test("voiceId prefers voiceURI, else name|lang (stable)", () => {
+  assert.equal(voiceId({ voiceURI: "urn:voice:paulina", name: "Paulina", lang: "es-MX" }), "urn:voice:paulina");
+  assert.equal(voiceId({ name: "Mónica", lang: "es-ES" }), "Mónica|es-ES");
+  assert.equal(voiceId({ name: "", lang: "" }), "|");
+  assert.equal(voiceId(null), "");
+  // same voice → same id (stability)
+  const a = { name: "Jorge", lang: "es-ES" };
+  assert.equal(voiceId(a), voiceId({ ...a }));
+});
+
+test("resolveVoice: preferred-present returns the chosen voice (AC-K3.4)", () => {
+  const monica = v("es-ES", "Mónica");
+  const paulina = v("es-MX", "Paulina");
+  const voices = [monica, paulina];
+  // choose Paulina by its id even though Mónica (es-ES) is the auto-pick
+  assert.equal(resolveVoice(voices, voiceId(paulina)).name, "Paulina");
+});
+
+test("resolveVoice: preferred-absent falls back to the Spanish auto-pick (AC-K3.4)", () => {
+  const voices = [v("en-US", "Alex"), v("es-ES", "Mónica")];
+  assert.equal(resolveVoice(voices, "urn:voice:not-installed").lang, "es-ES");
+});
+
+test("resolveVoice: no voices (or none Spanish, no preferred) → null", () => {
+  assert.equal(resolveVoice([], "anything"), null);
+  assert.equal(resolveVoice(null, "anything"), null);
+  assert.equal(resolveVoice([v("en-US", "Alex")], null), null);
+});
+
+test("resolveVoice: null preferred → Spanish auto-pick", () => {
+  const voices = [v("es-MX", "Paulina"), v("es-ES", "Mónica")];
+  assert.equal(resolveVoice(voices, null).lang, "es-ES");
+});
+
+test("setPreferredVoice / getPreferredVoice round-trip (null = Automática)", () => {
+  setPreferredVoice("urn:voice:paulina");
+  assert.equal(getPreferredVoice(), "urn:voice:paulina");
+  setPreferredVoice("");
+  assert.equal(getPreferredVoice(), null);
+  setPreferredVoice(null);
+  assert.equal(getPreferredVoice(), null);
+});
+
+test("availableVoices returns [] under Node (no synthesis) and never throws", () => {
+  const list = availableVoices();
+  assert.ok(Array.isArray(list));
+  assert.equal(list.length, 0);
 });

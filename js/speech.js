@@ -228,6 +228,51 @@ export function hasSpanishVoice(voices) {
   return pickSpanishVoice(voices) !== null;
 }
 
+// ---- Voice identity + override (iteration 7, D3 / AC-K3) --------------------
+
+/**
+ * A stable id for a voice: prefer the standard `voiceURI`, else a
+ * `name|lang` composite. Used both to persist the adult's choice and to match a
+ * stored preference back to an installed voice. PURE — unit-testable in Node.
+ * @param {{voiceURI?: string, name?: string, lang?: string}} voice
+ * @returns {string}
+ */
+export function voiceId(voice) {
+  if (!voice) return "";
+  if (voice.voiceURI) return String(voice.voiceURI);
+  return `${voice.name || ""}|${voice.lang || ""}`;
+}
+
+/**
+ * Resolve which voice `speak` should use: the adult's chosen voice when it is
+ * present on the device (matched by voiceId), else the Spanish auto-pick, else
+ * null. PURE — no browser globals, so it is unit-tested in Node (AC-K3.4).
+ * @param {Array<object>} voices available voices
+ * @param {string|null} preferredId the persisted voiceId, or null for "auto"
+ * @returns {object|null}
+ */
+export function resolveVoice(voices, preferredId) {
+  if (!Array.isArray(voices) || voices.length === 0) return null;
+  if (preferredId) {
+    const chosen = voices.find((v) => v && voiceId(v) === preferredId);
+    if (chosen) return chosen;
+  }
+  return pickSpanishVoice(voices);
+}
+
+// The adult-chosen voice id (persisted by the app, applied here). null = auto.
+let _preferredVoiceId = null;
+
+/** Set the preferred voice id ("" / null = Automática). Never throws. */
+export function setPreferredVoice(id) {
+  _preferredVoiceId = id ? String(id) : null;
+}
+
+/** Get the current preferred voice id (or null for Automática). */
+export function getPreferredVoice() {
+  return _preferredVoiceId;
+}
+
 // ---- Browser voice state (drives the dashboard notice, AC-I2.5) -------------
 
 // Tracks whether the last speak() found a Spanish voice. null = unknown (not
@@ -238,6 +283,31 @@ let _noSpanishVoice = null;
 function getVoices() {
   if (!synthesisSupported) return [];
   return window.speechSynthesis.getVoices() || [];
+}
+
+/**
+ * Enumerate the device's voices for the adult voice picker (AC-K3.1/K3.2),
+ * Spanish-first. Each entry is `{ id, label, lang }` where `id` is the stable
+ * voiceId and `label` is a human-readable "Name (lang)" string. Returns [] when
+ * synthesis is unavailable. Does NOT include the "Automática" sentinel — the UI
+ * prepends that option. Safe (never throws).
+ * @returns {Array<{id: string, label: string, lang: string}>}
+ */
+export function availableVoices() {
+  const voices = getVoices();
+  if (!Array.isArray(voices) || voices.length === 0) return [];
+  // Spanish-first: bucket (0..5 Spanish, 6 other), then name for stability.
+  const sorted = [...voices].sort((a, b) => {
+    const ba = spanishBucket(a);
+    const bb = spanishBucket(b);
+    if (ba !== bb) return ba - bb;
+    return String(a.name || "").localeCompare(String(b.name || ""));
+  });
+  return sorted.map((v) => ({
+    id: voiceId(v),
+    label: `${v.name || "Voz"}${v.lang ? ` (${v.lang})` : ""}`,
+    lang: v.lang || "",
+  }));
 }
 
 /**
@@ -319,9 +389,12 @@ export async function speak(text) {
   if (!synthesisSupported) return;
   try {
     const voices = await awaitVoices();
-    const voice = pickSpanishVoice(voices);
-    // Record whether a Spanish voice exists so the dashboard can warn.
-    _noSpanishVoice = voices.length ? !voice : _noSpanishVoice;
+    // Use the adult's chosen voice when present, else the Spanish auto-pick
+    // (AC-K3.4). resolveVoice falls back to pickSpanishVoice internally.
+    const voice = resolveVoice(voices, _preferredVoiceId);
+    // Record whether a Spanish voice exists so the dashboard can warn. This is
+    // independent of the adult's override (the notice reflects device voices).
+    _noSpanishVoice = voices.length ? !pickSpanishVoice(voices) : _noSpanishVoice;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(String(text));
     utter.lang = voice && voice.lang ? voice.lang : "es-ES"; // best effort

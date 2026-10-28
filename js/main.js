@@ -74,6 +74,8 @@ const dashTrouble = el("dash-trouble");
 const diffFacil = el("diff-facil");
 const diffNormal = el("diff-normal");
 const veryYoungToggle = el("veryyoung-toggle");
+const autoReadToggle = el("autoread-toggle");
+const voiceSelect = el("voice-select");
 const resetBtn = el("reset-btn");
 
 // Adult gate overlay
@@ -108,7 +110,20 @@ const game = createGame({
     activeMascotState = s;
     mascot.setState(s);
   },
+  // Improved success animation (D5 / AC-K5): pop the hero card in step with the
+  // confetti burst + Lalo cheer. CSS-only, reflow-restart like the entrance
+  // animation, honored-by prefers-reduced-motion in styles.css.
+  onSuccessPop: () => replaySuccessPop(),
 });
+
+// Retrigger the success "pop" on the hero card (AC-K5.1). Toggling the class
+// with a forced reflow restarts the CSS keyframe on every correct answer.
+function replaySuccessPop() {
+  if (!wordView) return;
+  wordView.classList.remove("word-pop");
+  void wordView.offsetWidth; // force reflow so the animation can restart
+  wordView.classList.add("word-pop");
+}
 
 function setFeedback(message, kind) {
   feedback.textContent = message;
@@ -363,6 +378,37 @@ function renderDashboard() {
   diffFacil.classList.toggle("is-active", stats.difficulty === "facil");
   diffNormal.classList.toggle("is-active", stats.difficulty === "normal");
   veryYoungToggle.checked = Boolean(stats.veryYoung);
+
+  // Auto-read toggle (D7 / AC-K7) reflects the persisted setting.
+  if (autoReadToggle) autoReadToggle.checked = Boolean(stats.autoRead);
+
+  // Voice picker (D3 / AC-K3): (re)populate from the device voices and
+  // preselect the persisted choice. "Automática" is the empty-value sentinel.
+  populateVoiceOptions(stats.availableVoices || [], stats.voicePref || "");
+}
+
+/**
+ * Fill #voice-select with the device voices (Spanish-first), keeping the
+ * "Automática" option first, then select the persisted preference. Safe no-op
+ * if the control is absent. Called on dashboard render and on `voiceschanged`.
+ */
+function populateVoiceOptions(voices, preferredId) {
+  if (!voiceSelect) return;
+  voiceSelect.innerHTML = "";
+  const auto = document.createElement("option");
+  auto.value = "";
+  auto.textContent = "Automática (recomendada)";
+  voiceSelect.appendChild(auto);
+  for (const v of voices) {
+    const opt = document.createElement("option");
+    opt.value = v.id;
+    opt.textContent = v.label;
+    voiceSelect.appendChild(opt);
+  }
+  // Preselect the persisted value when it still matches an installed voice,
+  // else fall back to "Automática" (AC-K3.4).
+  const has = voices.some((v) => v.id === preferredId);
+  voiceSelect.value = preferredId && has ? preferredId : "";
 }
 
 function escapeHtml(str) {
@@ -403,6 +449,27 @@ dashBackBtn.addEventListener("click", () => game.goMap());
 diffFacil.addEventListener("click", () => game.setDifficulty("facil"));
 diffNormal.addEventListener("click", () => game.setDifficulty("normal"));
 veryYoungToggle.addEventListener("change", (e) => game.setVeryYoung(e.target.checked));
+if (autoReadToggle) {
+  autoReadToggle.addEventListener("change", (e) => game.setAutoRead(e.target.checked));
+}
+if (voiceSelect) {
+  // "" (Automática) maps to null; any other value is a stable voiceId.
+  voiceSelect.addEventListener("change", (e) => game.setVoicePref(e.target.value || null));
+}
+// Voices load lazily in Chrome; refresh the picker options when they arrive, but
+// only while the dashboard is on screen (re-reads the persisted preference).
+if (typeof window !== "undefined" && window.speechSynthesis) {
+  const onVoicesChanged = () => {
+    if (game.state.phase !== "dashboard") return;
+    const stats = game.dashboardStats();
+    populateVoiceOptions(stats.availableVoices || [], stats.voicePref || "");
+  };
+  try {
+    window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
+  } catch (_e) {
+    window.speechSynthesis.onvoiceschanged = onVoicesChanged;
+  }
+}
 resetBtn.addEventListener("click", () => {
   if (window.confirm("¿Borrar todo el progreso? No se puede deshacer.")) {
     game.resetProgress();

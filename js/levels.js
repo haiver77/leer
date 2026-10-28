@@ -101,7 +101,7 @@ function buildLevels() {
       type: "word",
       mode: "word",
       artId: b.artId,
-      goal: Math.min(5, poolSize),
+      goal: Math.min(10, poolSize),
       pool: () => forBand(spec).map((w) => w.word),
     });
   }

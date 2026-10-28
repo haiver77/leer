@@ -346,16 +346,10 @@ body {
   opacity: 1;
 }
 
-/* secondary, de-emphasised row */
-.secondary-controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
 /* The "Siguiente" chip (#next-btn / .chip-btn) was removed in iteration 6
-   (D5 / AC-J5): advancing is by left-swipe or ArrowRight. The now-dead
-   .chip-btn rule is deleted accordingly. */
+   (D5 / AC-J5): advancing is by left-swipe or ArrowRight. The `.secondary-controls`
+   cluster below the mic was removed in iteration 7 (D4/D8): Lalo now sits by the
+   card (.mascot-companion), so no empty row remains below "Hablar". */
 
 /* ---------- Game screen (immersive: card = hero) ---------- */
 /* The play screen is a full-height column: a compact top bar, a flexible
@@ -480,6 +474,26 @@ body {
 .word-view.word-enter {
   animation: word-enter 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
+/* Improved success pop (iteration 7, D5 / AC-K5): a short bounce on the hero
+   card on a correct answer. Toggled from main.js via .word-pop so it replays
+   per success; <= ~0.6s, well inside ADVANCE_DELAY_MS. Reduced-motion skips it
+   (see the prefers-reduced-motion block). */
+.word-view.word-pop {
+  animation: word-pop 0.56s cubic-bezier(0.2, 1.1, 0.3, 1.25);
+}
+
+/* Visible Lalo companion by the card (iteration 7, D4 / AC-K4). Absolutely
+   positioned in the card host's top-right corner so it is clearly visible but
+   never overlaps the word/tiles/buttons/feedback; decorative + non-interactive
+   so it never steals a tap. */
+.card-host .mascot-companion {
+  position: absolute;
+  top: clamp(2px, 1.2vh, 14px);
+  right: clamp(2px, 2vw, 18px);
+  width: clamp(64px, 18vw, 104px);
+  z-index: 3;
+  pointer-events: none; /* never intercept a tap meant for the card (AC-K4.3) */
+}
 .word-parts {
   display: flex;
   align-items: center;
@@ -585,6 +599,18 @@ body {
   padding: 10px 20px;
   border-radius: 999px;
   color: #fff;
+  transition: min-height 0.18s ease, padding 0.18s ease;
+}
+/* Remove the empty standing footprint above "Hablar" (iteration 7, D8 /
+   AC-K8): when #feedback has no message it collapses to zero height/padding so
+   there is no blank gap, while remaining a role="status" aria-live region. A
+   transient message expands it back (the transition keeps the mic from jumping
+   under the finger). */
+.feedback:empty {
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
 }
 .feedback[data-kind="success"] {
   background: var(--success);
@@ -913,6 +939,32 @@ body {
   height: 28px;
 }
 
+/* Voice picker field (iteration 7, D3 / AC-K3). A labeled native <select>. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  margin: 12px 0;
+  color: var(--ink);
+}
+.field-label {
+  font-size: 1rem;
+}
+.select {
+  min-height: var(--tap);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 10px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  max-width: 100%;
+}
+
 /* ---------- Adult gate overlay ---------- */
 .overlay {
   position: fixed;
@@ -1053,6 +1105,22 @@ body.very-young .dashboard .feedback {
     transform: translateY(0) scale(1);
   }
 }
+/* Success pop on the hero card (iteration 7, D5 / AC-K5) — a quick scale bounce
+   with a tiny wobble; <= ~0.6s, 60fps-friendly (transform-only). */
+@keyframes word-pop {
+  0% {
+    transform: scale(1) rotate(0);
+  }
+  35% {
+    transform: scale(1.12) rotate(-1.5deg);
+  }
+  65% {
+    transform: scale(0.98) rotate(1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
 /* Map-node pop as a node appears/unlocks (AC-I4.3). */
 @keyframes node-pop {
   0% {
@@ -1105,18 +1173,24 @@ body.very-young .dashboard .feedback {
     transform: translateY(-2px) scale(1.02);
   }
 }
+/* Bigger cheer jump for the improved success moment (iteration 7, D5 / AC-K5):
+   a higher hop + a touch of scale so Lalo visibly celebrates. Still short and
+   transform-only; reduced-motion skips it. */
 @keyframes lalo-cheer {
   0% {
-    transform: translateY(0) rotate(0);
+    transform: translateY(0) rotate(0) scale(1);
   }
-  30% {
-    transform: translateY(-14px) rotate(-4deg);
+  28% {
+    transform: translateY(-24px) rotate(-6deg) scale(1.08);
   }
-  60% {
-    transform: translateY(0) rotate(4deg);
+  58% {
+    transform: translateY(0) rotate(6deg) scale(1.02);
+  }
+  78% {
+    transform: translateY(-8px) rotate(-2deg) scale(1.03);
   }
   100% {
-    transform: translateY(0) rotate(0);
+    transform: translateY(0) rotate(0) scale(1);
   }
 }
 @keyframes lalo-wave {
@@ -1156,6 +1230,7 @@ body.very-young .dashboard .feedback {
   .screen,
   .word-view,
   .word-view.word-enter,
+  .word-view.word-pop,
   .summary-sticker,
   .gesture-hint,
   .feedback[data-kind="success"],
@@ -1208,6 +1283,13 @@ body.very-young .dashboard .feedback {
     gap: clamp(4px, 1vh, 10px);
     padding: clamp(6px, 1.5vw, 14px);
   }
+  /* Keep Lalo visible but smaller + tucked in the corner at <=420px so it never
+     overlaps the word/tiles (AC-K4.4). */
+  .card-host .mascot-companion {
+    width: clamp(52px, 15vw, 76px);
+    top: 2px;
+    right: 2px;
+  }
 }
 @media (orientation: landscape) and (max-height: 560px) {
   .app {
@@ -1228,6 +1310,11 @@ body.very-young .dashboard .feedback {
   }
   .word-view[data-parts="3"] .word-whole {
     font-size: clamp(1.6rem, 7vh, 3.4rem);
+  }
+  /* Short-landscape: shrink Lalo so it holds in the corner without pushing the
+     card or controls off-screen (AC-K4.4). */
+  .card-host .mascot-companion {
+    width: clamp(44px, 14vh, 72px);
   }
 }
 

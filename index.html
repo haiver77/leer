@@ -102,6 +102,13 @@
             <div id="word-whole" class="word-whole" role="img" aria-label="Palabra">pato</div>
           </div>
 
+          <!-- Visible Lalo companion (iteration 7, D4 / AC-K4): a larger,
+               persistent mascot anchored to the card's corner so the child sees
+               it clearly during play. Decorative + non-interactive
+               (aria-hidden, pointer-events:none in CSS) so it never steals a tap
+               and never obscures the word, tiles, buttons, or feedback. -->
+          <div id="game-mascot" class="mascot mascot-companion" aria-hidden="true"></div>
+
           <!-- Subtle, non-blocking first-use gesture hint (G3) -->
           <div id="gesture-hint" class="gesture-hint" role="note" hidden>
             <span class="gesture-hint-item"><span aria-hidden="true">👆</span> Toca para oír</span>
@@ -109,6 +116,9 @@
           </div>
         </div>
 
+        <!-- Transient status only (role=status live region). It carries no
+             standing text and collapses to zero footprint when empty (D8 /
+             AC-K8), so there is no blank gap above "Hablar". -->
         <p id="feedback" class="feedback" role="status" aria-live="polite" data-kind="neutral"></p>
 
         <div class="play-bottom">
@@ -129,14 +139,9 @@
               <span aria-hidden="true">✅</span> <span class="btn-label">¡Lo dije!</span>
             </button>
           </div>
-
-          <!-- Minimal subordinate cluster: just the mascot. The "Siguiente"
-               chip is removed (iteration 6, D5 / AC-J5.1); advancing is by
-               left-swipe or ArrowRight, kept discoverable via the gesture hint.
-               The 🔊 "Escuchar" button was removed in iteration 5. -->
-          <div class="secondary-controls">
-            <div id="game-mascot" class="mascot mascot-small" aria-hidden="true"></div>
-          </div>
+          <!-- The old `.secondary-controls` cluster (which only held the small
+               mascot chip) is removed in iteration 7 (D4/D8): Lalo now lives by
+               the card, so nothing empty remains below the mic. -->
         </div>
       </section>
 
@@ -233,6 +238,21 @@
           <label class="toggle">
             <input id="veryyoung-toggle" type="checkbox" />
             <span>Modo muy pequeño (sin texto)</span>
+          </label>
+          <!-- Auto-read toggle (iteration 7, D7 / AC-K7): read the word aloud
+               automatically when it appears. Default ON. -->
+          <label class="toggle">
+            <input id="autoread-toggle" type="checkbox" checked />
+            <span>Leer la palabra automáticamente</span>
+          </label>
+          <!-- Voice picker (iteration 7, D3 / AC-K3): choose which installed TTS
+               voice reads. "Automática" lets the app pick the best Spanish
+               voice. Populated from the device's voices in main.js. -->
+          <label class="field">
+            <span class="field-label">Voz de lectura</span>
+            <select id="voice-select" class="select">
+              <option value="">Automática (recomendada)</option>
+            </select>
           </label>
           <button id="reset-btn" type="button" class="btn btn-danger" aria-label="Borrar todo el progreso">
             Borrar progreso <span aria-hidden="true">🗑️</span>

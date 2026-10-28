@@ -6,7 +6,7 @@
 // after the first load (F13.2); bundled audio clips (when added) are listed
 // here so modeling works offline — TTS is the fallback for anything missing.
 
-const CACHE_VERSION = "lalo-silabas-v6.0.0";
+const CACHE_VERSION = "lalo-silabas-v7.0.0";
 
 // Real files that make up the offline app shell. Paths are relative to the SW
 // scope (the app/ folder when served from there).

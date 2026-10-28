@@ -20,31 +20,51 @@
  * @type {Array<{word: string, parts: string[], artId: string, emoji: string, syllableCount: number, rank: number}>}
  */
 export const WORDS = [
-  // tier-1 (m/p/l/s/t) all-open
+  // tier-1 (m/p/l/s/t) all-open — >=10 so pal-2-abiertas-1 plays offline
   { word: "mamá", parts: ["Ma", "Má"], artId: "word-mama", emoji: "👩", syllableCount: 2, rank: 1 },
-  { word: "mapa", parts: ["Ma", "Pa"], artId: "word-mapa", emoji: "🗺️", syllableCount: 2, rank: 2 },
+  { word: "masa", parts: ["Ma", "Sa"], artId: "word-masa", emoji: "🍞", syllableCount: 2, rank: 2 },
   { word: "mesa", parts: ["Me", "Sa"], artId: "word-mesa", emoji: "🍽️", syllableCount: 2, rank: 3 },
-  { word: "pelo", parts: ["Pe", "Lo"], artId: "word-pelo", emoji: "💇", syllableCount: 2, rank: 4 },
-  { word: "pato", parts: ["Pa", "To"], artId: "word-pato", emoji: "🦆", syllableCount: 2, rank: 5 },
-  { word: "sopa", parts: ["So", "Pa"], artId: "word-sopa", emoji: "🍲", syllableCount: 2, rank: 6 },
-  { word: "loma", parts: ["Lo", "Ma"], artId: "word-loma", emoji: "⛰️", syllableCount: 2, rank: 7 },
-  { word: "lupa", parts: ["Lu", "Pa"], artId: "word-lupa", emoji: "🔍", syllableCount: 2, rank: 8 },
-  { word: "tela", parts: ["Te", "La"], artId: "word-tela", emoji: "🧵", syllableCount: 2, rank: 9 },
-  // tier-2 (d/n) all-open
-  { word: "dedo", parts: ["De", "Do"], artId: "word-dedo", emoji: "👆", syllableCount: 2, rank: 10 },
-  { word: "dado", parts: ["Da", "Do"], artId: "word-dado", emoji: "🎲", syllableCount: 2, rank: 11 },
-  { word: "nido", parts: ["Ni", "Do"], artId: "word-nido", emoji: "🪹", syllableCount: 2, rank: 12 },
-  { word: "luna", parts: ["Lu", "Na"], artId: "word-luna", emoji: "🌙", syllableCount: 2, rank: 13 },
-  // tier-3 (b/c/f/g/j/r…) all-open
-  { word: "boca", parts: ["Bo", "Ca"], artId: "word-boca", emoji: "👄", syllableCount: 2, rank: 14 },
-  { word: "casa", parts: ["Ca", "Sa"], artId: "word-casa", emoji: "🏠", syllableCount: 2, rank: 15 },
-  { word: "gato", parts: ["Ga", "To"], artId: "word-gato", emoji: "🐱", syllableCount: 2, rank: 16 },
-  { word: "rana", parts: ["Ra", "Na"], artId: "word-rana", emoji: "🐸", syllableCount: 2, rank: 17 },
-  // tier-4 / closed — the "especiales" zone
-  { word: "taza", parts: ["Ta", "Za"], artId: "word-taza", emoji: "☕", syllableCount: 2, rank: 18 },
-  { word: "limón", parts: ["Li", "Món"], artId: "word-limon", emoji: "🍋", syllableCount: 2, rank: 19 },
-  { word: "gallo", parts: ["Ga", "Llo"], artId: "word-gallo", emoji: "🐓", syllableCount: 2, rank: 20 },
-  { word: "perro", parts: ["Pe", "Rro"], artId: "word-perro", emoji: "🐶", syllableCount: 2, rank: 21 },
+  { word: "mapa", parts: ["Ma", "Pa"], artId: "word-mapa", emoji: "🗺️", syllableCount: 2, rank: 4 },
+  { word: "pala", parts: ["Pa", "La"], artId: "word-pala", emoji: "🪏", syllableCount: 2, rank: 5 },
+  { word: "pato", parts: ["Pa", "To"], artId: "word-pato", emoji: "🦆", syllableCount: 2, rank: 6 },
+  { word: "pelo", parts: ["Pe", "Lo"], artId: "word-pelo", emoji: "💇", syllableCount: 2, rank: 7 },
+  { word: "sopa", parts: ["So", "Pa"], artId: "word-sopa", emoji: "🍲", syllableCount: 2, rank: 8 },
+  { word: "loma", parts: ["Lo", "Ma"], artId: "word-loma", emoji: "⛰️", syllableCount: 2, rank: 9 },
+  { word: "lupa", parts: ["Lu", "Pa"], artId: "word-lupa", emoji: "🔍", syllableCount: 2, rank: 10 },
+  { word: "tela", parts: ["Te", "La"], artId: "word-tela", emoji: "🧵", syllableCount: 2, rank: 11 },
+  // tier-2 (d/n/ñ) all-open — >=10 so pal-2-abiertas-2 plays offline (AC-K2.5)
+  { word: "dado", parts: ["Da", "Do"], artId: "word-dado", emoji: "🎲", syllableCount: 2, rank: 12 },
+  { word: "dama", parts: ["Da", "Ma"], artId: "word-dama", emoji: "👩", syllableCount: 2, rank: 13 },
+  { word: "dedo", parts: ["De", "Do"], artId: "word-dedo", emoji: "👆", syllableCount: 2, rank: 14 },
+  { word: "duna", parts: ["Du", "Na"], artId: "word-duna", emoji: "🏜️", syllableCount: 2, rank: 15 },
+  { word: "luna", parts: ["Lu", "Na"], artId: "word-luna", emoji: "🌙", syllableCount: 2, rank: 16 },
+  { word: "nene", parts: ["Ne", "Ne"], artId: "word-nene", emoji: "👶", syllableCount: 2, rank: 17 },
+  { word: "nido", parts: ["Ni", "Do"], artId: "word-nido", emoji: "🪹", syllableCount: 2, rank: 18 },
+  { word: "niña", parts: ["Ni", "Ña"], artId: "word-nina", emoji: "👧", syllableCount: 2, rank: 19 },
+  { word: "nudo", parts: ["Nu", "Do"], artId: "word-nudo", emoji: "🪢", syllableCount: 2, rank: 20 },
+  { word: "pino", parts: ["Pi", "No"], artId: "word-pino", emoji: "🌲", syllableCount: 2, rank: 21 },
+  // tier-3 (b/c/f/g/j/r…) all-open — >=10 so pal-2-abiertas-3 plays offline
+  { word: "boca", parts: ["Bo", "Ca"], artId: "word-boca", emoji: "👄", syllableCount: 2, rank: 22 },
+  { word: "café", parts: ["Ca", "Fé"], artId: "word-cafe", emoji: "☕", syllableCount: 2, rank: 23 },
+  { word: "casa", parts: ["Ca", "Sa"], artId: "word-casa", emoji: "🏠", syllableCount: 2, rank: 24 },
+  { word: "foca", parts: ["Fo", "Ca"], artId: "word-foca", emoji: "🦭", syllableCount: 2, rank: 25 },
+  { word: "gato", parts: ["Ga", "To"], artId: "word-gato", emoji: "🐱", syllableCount: 2, rank: 26 },
+  { word: "gota", parts: ["Go", "Ta"], artId: "word-gota", emoji: "💧", syllableCount: 2, rank: 27 },
+  { word: "jugo", parts: ["Ju", "Go"], artId: "word-jugo", emoji: "🧃", syllableCount: 2, rank: 28 },
+  { word: "rama", parts: ["Ra", "Ma"], artId: "word-rama", emoji: "🌿", syllableCount: 2, rank: 29 },
+  { word: "rana", parts: ["Ra", "Na"], artId: "word-rana", emoji: "🐸", syllableCount: 2, rank: 30 },
+  { word: "rosa", parts: ["Ro", "Sa"], artId: "word-rosa", emoji: "🌹", syllableCount: 2, rank: 31 },
+  // tier-4 / closed / digraph — the "especiales" zone — >=10 offline (AC-K2.5)
+  { word: "pozo", parts: ["Po", "Zo"], artId: "word-pozo", emoji: "🕳️", syllableCount: 2, rank: 32 },
+  { word: "taza", parts: ["Ta", "Za"], artId: "word-taza", emoji: "☕", syllableCount: 2, rank: 33 },
+  { word: "limón", parts: ["Li", "Món"], artId: "word-limon", emoji: "🍋", syllableCount: 2, rank: 34 },
+  { word: "pastel", parts: ["Pas", "Tel"], artId: "word-pastel", emoji: "🍰", syllableCount: 2, rank: 35 },
+  { word: "jamón", parts: ["Ja", "Món"], artId: "word-jamon", emoji: "🍖", syllableCount: 2, rank: 36 },
+  { word: "coche", parts: ["Co", "Che"], artId: "word-coche", emoji: "🚗", syllableCount: 2, rank: 37 },
+  { word: "gallo", parts: ["Ga", "Llo"], artId: "word-gallo", emoji: "🐓", syllableCount: 2, rank: 38 },
+  { word: "pollo", parts: ["Po", "Llo"], artId: "word-pollo", emoji: "🍗", syllableCount: 2, rank: 39 },
+  { word: "perro", parts: ["Pe", "Rro"], artId: "word-perro", emoji: "🐶", syllableCount: 2, rank: 40 },
+  { word: "chapa", parts: ["Cha", "Pa"], artId: "word-chapa", emoji: "🔖", syllableCount: 2, rank: 41 },
 ];
 
 /**
@@ -52,21 +72,60 @@ export const WORDS = [
  * data/words-3syllables.csv so the 3-syllable level works offline / file://.
  * @type {Array<{word: string, parts: string[], artId: string, emoji: string, syllableCount: number, rank: number}>}
  */
+// Mirrors data/words-3syllables.csv so every 3-syllable band is >=10 offline /
+// from file:// (AC-K2.5 / AC-K2.6) and so levels.js freezes goal === 10 for the
+// 3-syllable bands even before the live CSV loads.
 export const WORDS_3 = [
-  // all-open tier-1 (m/p/l/s/t) first
   { word: "maleta", parts: ["Ma", "Le", "Ta"], artId: "word-maleta", emoji: "🧳", syllableCount: 3, rank: 1 },
   { word: "paloma", parts: ["Pa", "Lo", "Ma"], artId: "word-paloma", emoji: "🕊️", syllableCount: 3, rank: 2 },
-  { word: "pelota", parts: ["Pe", "Lo", "Ta"], artId: "word-pelota", emoji: "⚽", syllableCount: 3, rank: 3 },
-  { word: "tomate", parts: ["To", "Ma", "Te"], artId: "word-tomate", emoji: "🍅", syllableCount: 3, rank: 4 },
-  // tier-3 (b/c) all-open — after the tier-1 words, alphabetical tiebreak
-  { word: "banana", parts: ["Ba", "Na", "Na"], artId: "word-banana", emoji: "🍌", syllableCount: 3, rank: 5 },
-  { word: "camisa", parts: ["Ca", "Mi", "Sa"], artId: "word-camisa", emoji: "👕", syllableCount: 3, rank: 6 },
-  // tier-4 / z / ll — the "especiales" zone (last)
-  { word: "cabeza", parts: ["Ca", "Be", "Za"], artId: "word-cabeza", emoji: "🗣️", syllableCount: 3, rank: 7 },
-  { word: "cereza", parts: ["Ce", "Re", "Za"], artId: "word-cereza", emoji: "🍒", syllableCount: 3, rank: 8 },
-  { word: "zapato", parts: ["Za", "Pa", "To"], artId: "word-zapato", emoji: "👟", syllableCount: 3, rank: 9 },
-  { word: "semilla", parts: ["Se", "Mi", "Lla"], artId: "word-semilla", emoji: "🌱", syllableCount: 3, rank: 10 },
-  { word: "gallina", parts: ["Ga", "Lli", "Na"], artId: "word-gallina", emoji: "🐔", syllableCount: 3, rank: 11 },
+  { word: "pelito", parts: ["Pe", "Li", "To"], artId: "word-pelito", emoji: "💇", syllableCount: 3, rank: 3 },
+  { word: "pelota", parts: ["Pe", "Lo", "Ta"], artId: "word-pelota", emoji: "⚽", syllableCount: 3, rank: 4 },
+  { word: "pelusa", parts: ["Pe", "Lu", "Sa"], artId: "word-pelito", emoji: "🧶", syllableCount: 3, rank: 5 },
+  { word: "pesita", parts: ["Pe", "Si", "Ta"], artId: "word-pelito", emoji: "🏋️", syllableCount: 3, rank: 6 },
+  { word: "salita", parts: ["Sa", "Li", "Ta"], artId: "word-salida", emoji: "🚪", syllableCount: 3, rank: 7 },
+  { word: "sopita", parts: ["So", "Pi", "Ta"], artId: "word-sopita", emoji: "🍲", syllableCount: 3, rank: 8 },
+  { word: "tomate", parts: ["To", "Ma", "Te"], artId: "word-tomate", emoji: "🍅", syllableCount: 3, rank: 9 },
+  { word: "patito", parts: ["Pa", "Ti", "To"], artId: "word-pato", emoji: "🐥", syllableCount: 3, rank: 10 },
+  { word: "dedito", parts: ["De", "Di", "To"], artId: "word-dedito", emoji: "👆", syllableCount: 3, rank: 11 },
+  { word: "dominó", parts: ["Do", "Mi", "Nó"], artId: "word-domino", emoji: "🁢", syllableCount: 3, rank: 12 },
+  { word: "pepino", parts: ["Pe", "Pi", "No"], artId: "word-pepino", emoji: "🥒", syllableCount: 3, rank: 13 },
+  { word: "salada", parts: ["Sa", "La", "Da"], artId: "word-salada", emoji: "🥗", syllableCount: 3, rank: 14 },
+  { word: "salida", parts: ["Sa", "Li", "Da"], artId: "word-salida", emoji: "🚪", syllableCount: 3, rank: 15 },
+  { word: "muñeca", parts: ["Mu", "Ñe", "Ca"], artId: "word-muneca", emoji: "🪆", syllableCount: 3, rank: 16 },
+  { word: "banana", parts: ["Ba", "Na", "Na"], artId: "word-banana", emoji: "🍌", syllableCount: 3, rank: 17 },
+  { word: "bebida", parts: ["Be", "Bi", "Da"], artId: "word-bebida", emoji: "🥤", syllableCount: 3, rank: 18 },
+  { word: "bonita", parts: ["Bo", "Ni", "Ta"], artId: "word-bonita", emoji: "🌸", syllableCount: 3, rank: 19 },
+  { word: "camisa", parts: ["Ca", "Mi", "Sa"], artId: "word-camisa", emoji: "👕", syllableCount: 3, rank: 20 },
+  { word: "canela", parts: ["Ca", "Ne", "La"], artId: "word-canela", emoji: "🟤", syllableCount: 3, rank: 21 },
+  { word: "cocina", parts: ["Co", "Ci", "Na"], artId: "word-conejo", emoji: "🍳", syllableCount: 3, rank: 22 },
+  { word: "conejo", parts: ["Co", "Ne", "Jo"], artId: "word-conejo", emoji: "🐰", syllableCount: 3, rank: 23 },
+  { word: "dinero", parts: ["Di", "Ne", "Ro"], artId: "word-dinero", emoji: "💰", syllableCount: 3, rank: 24 },
+  { word: "fogata", parts: ["Fo", "Ga", "Ta"], artId: "word-fogata", emoji: "🔥", syllableCount: 3, rank: 25 },
+  { word: "gatito", parts: ["Ga", "Ti", "To"], artId: "word-gato", emoji: "🐱", syllableCount: 3, rank: 26 },
+  { word: "gusano", parts: ["Gu", "Sa", "No"], artId: "word-gusano", emoji: "🐛", syllableCount: 3, rank: 27 },
+  { word: "jirafa", parts: ["Ji", "Ra", "Fa"], artId: "word-jirafa", emoji: "🦒", syllableCount: 3, rank: 28 },
+  { word: "maceta", parts: ["Ma", "Ce", "Ta"], artId: "word-maleta", emoji: "🪴", syllableCount: 3, rank: 29 },
+  { word: "nevera", parts: ["Ne", "Ve", "Ra"], artId: "word-salida", emoji: "🧊", syllableCount: 3, rank: 30 },
+  { word: "ratita", parts: ["Ra", "Ti", "Ta"], artId: "word-rana", emoji: "🐭", syllableCount: 3, rank: 31 },
+  { word: "sabana", parts: ["Sa", "Ba", "Na"], artId: "word-cuna", emoji: "🛏️", syllableCount: 3, rank: 32 },
+  { word: "venada", parts: ["Ve", "Na", "Da"], artId: "word-salida", emoji: "🦌", syllableCount: 3, rank: 33 },
+  { word: "cabeza", parts: ["Ca", "Be", "Za"], artId: "word-cabeza", emoji: "🗣️", syllableCount: 3, rank: 34 },
+  { word: "cereza", parts: ["Ce", "Re", "Za"], artId: "word-cereza", emoji: "🍒", syllableCount: 3, rank: 35 },
+  { word: "zapato", parts: ["Za", "Pa", "To"], artId: "word-zapato", emoji: "👟", syllableCount: 3, rank: 36 },
+  { word: "limones", parts: ["Li", "Mo", "Nes"], artId: "word-limones", emoji: "🍋", syllableCount: 3, rank: 37 },
+  { word: "manzana", parts: ["Man", "Za", "Na"], artId: "word-banana", emoji: "🍎", syllableCount: 3, rank: 38 },
+  { word: "pantera", parts: ["Pan", "Te", "Ra"], artId: "word-puma", emoji: "🐆", syllableCount: 3, rank: 39 },
+  { word: "pescado", parts: ["Pes", "Ca", "Do"], artId: "word-pescado", emoji: "🐟", syllableCount: 3, rank: 40 },
+  { word: "tortuga", parts: ["Tor", "Tu", "Ga"], artId: "word-tortuga", emoji: "🐢", syllableCount: 3, rank: 41 },
+  { word: "semilla", parts: ["Se", "Mi", "Lla"], artId: "word-semilla", emoji: "🌱", syllableCount: 3, rank: 42 },
+  { word: "gallina", parts: ["Ga", "Lli", "Na"], artId: "word-gallina", emoji: "🐔", syllableCount: 3, rank: 43 },
+  { word: "botella", parts: ["Bo", "Te", "Lla"], artId: "word-botella", emoji: "🍾", syllableCount: 3, rank: 44 },
+  { word: "caballo", parts: ["Ca", "Ba", "Llo"], artId: "word-caballo", emoji: "🐴", syllableCount: 3, rank: 45 },
+  { word: "ballena", parts: ["Ba", "Lle", "Na"], artId: "word-ballena", emoji: "🐋", syllableCount: 3, rank: 46 },
+  { word: "cuchara", parts: ["Cu", "Cha", "Ra"], artId: "word-cuchara", emoji: "🥄", syllableCount: 3, rank: 47 },
+  { word: "guitarra", parts: ["Gui", "Ta", "Rra"], artId: "word-guitarra", emoji: "🎸", syllableCount: 3, rank: 48 },
+  { word: "chaqueta", parts: ["Cha", "Que", "Ta"], artId: "word-chaqueta", emoji: "🧥", syllableCount: 3, rank: 49 },
+  { word: "estrella", parts: ["Es", "Tre", "Lla"], artId: "word-estrella", emoji: "⭐", syllableCount: 3, rank: 50 },
 ];
 
 /**
@@ -75,20 +134,32 @@ export const WORDS_3 = [
  * offline / from file://.
  * @type {Array<{word: string, parts: string[], artId: string, emoji: string, syllableCount: number, rank: number}>}
  */
+// Mirrors data/words-4syllables.csv so both 4-syllable bands are >=10 offline /
+// from file:// and so levels.js freezes goal === 10 for them before the live
+// CSV loads (AC-K2.5 / AC-K2.6).
 export const WORDS_4 = [
-  // all-open tier-1/2 first
   { word: "tomatito", parts: ["To", "Ma", "Ti", "To"], artId: "word-tomate", emoji: "🍅", syllableCount: 4, rank: 1 },
   { word: "pelotita", parts: ["Pe", "Lo", "Ti", "Ta"], artId: "word-pelota", emoji: "⚽", syllableCount: 4, rank: 2 },
   { word: "maletita", parts: ["Ma", "Le", "Ti", "Ta"], artId: "word-maleta", emoji: "🧳", syllableCount: 4, rank: 3 },
   { word: "limonada", parts: ["Li", "Mo", "Na", "Da"], artId: "word-limonada", emoji: "🍹", syllableCount: 4, rank: 4 },
-  // all-open tier-3
-  { word: "mariposa", parts: ["Ma", "Ri", "Po", "Sa"], artId: "word-mariposa", emoji: "🦋", syllableCount: 4, rank: 5 },
-  { word: "caracola", parts: ["Ca", "Ra", "Co", "La"], artId: "word-caracola", emoji: "🐚", syllableCount: 4, rank: 6 },
-  { word: "telaraña", parts: ["Te", "La", "Ra", "Ña"], artId: "word-telarana", emoji: "🕸️", syllableCount: 4, rank: 7 },
-  // especiales (tier-4 / closed / digraph) last
-  { word: "calabaza", parts: ["Ca", "La", "Ba", "Za"], artId: "word-calabaza", emoji: "🎃", syllableCount: 4, rank: 8 },
-  { word: "elefante", parts: ["E", "Le", "Fan", "Te"], artId: "word-elefante", emoji: "🐘", syllableCount: 4, rank: 9 },
-  { word: "chocolate", parts: ["Cho", "Co", "La", "Te"], artId: "word-chocolate", emoji: "🍫", syllableCount: 4, rank: 10 },
+  { word: "patineta", parts: ["Pa", "Ti", "Ne", "Ta"], artId: "word-patineta", emoji: "🛹", syllableCount: 4, rank: 5 },
+  { word: "abanico", parts: ["A", "Ba", "Ni", "Co"], artId: "word-abanico", emoji: "🪭", syllableCount: 4, rank: 6 },
+  { word: "caracola", parts: ["Ca", "Ra", "Co", "La"], artId: "word-caracola", emoji: "🐚", syllableCount: 4, rank: 7 },
+  { word: "mariposa", parts: ["Ma", "Ri", "Po", "Sa"], artId: "word-mariposa", emoji: "🦋", syllableCount: 4, rank: 8 },
+  { word: "mariquita", parts: ["Ma", "Ri", "Qui", "Ta"], artId: "word-mariquita", emoji: "🐞", syllableCount: 4, rank: 9 },
+  { word: "panadera", parts: ["Pa", "Na", "De", "Ra"], artId: "word-panadera", emoji: "👩", syllableCount: 4, rank: 10 },
+  { word: "pelícano", parts: ["Pe", "Lí", "Ca", "No"], artId: "word-pelicano", emoji: "🦩", syllableCount: 4, rank: 11 },
+  { word: "telaraña", parts: ["Te", "La", "Ra", "Ña"], artId: "word-telarana", emoji: "🕸️", syllableCount: 4, rank: 12 },
+  { word: "calabaza", parts: ["Ca", "La", "Ba", "Za"], artId: "word-calabaza", emoji: "🎃", syllableCount: 4, rank: 13 },
+  { word: "payasito", parts: ["Pa", "Ya", "Si", "To"], artId: "word-payasito", emoji: "🤡", syllableCount: 4, rank: 14 },
+  { word: "elefante", parts: ["E", "Le", "Fan", "Te"], artId: "word-elefante", emoji: "🐘", syllableCount: 4, rank: 15 },
+  { word: "escalera", parts: ["Es", "Ca", "Le", "Ra"], artId: "word-escalera", emoji: "🪜", syllableCount: 4, rank: 16 },
+  { word: "campanita", parts: ["Cam", "Pa", "Ni", "Ta"], artId: "word-campanita", emoji: "🔔", syllableCount: 4, rank: 17 },
+  { word: "bicicleta", parts: ["Bi", "Ci", "Cle", "Ta"], artId: "word-bicicleta", emoji: "🚲", syllableCount: 4, rank: 18 },
+  { word: "cocodrilo", parts: ["Co", "Co", "Dri", "Lo"], artId: "word-cocodrilo", emoji: "🐊", syllableCount: 4, rank: 19 },
+  { word: "mantequilla", parts: ["Man", "Te", "Qui", "Lla"], artId: "word-mantequilla", emoji: "🧈", syllableCount: 4, rank: 20 },
+  { word: "maravilla", parts: ["Ma", "Ra", "Vi", "Lla"], artId: "word-maravilla", emoji: "✨", syllableCount: 4, rank: 21 },
+  { word: "chocolate", parts: ["Cho", "Co", "La", "Te"], artId: "word-chocolate", emoji: "🍫", syllableCount: 4, rank: 22 },
 ];
 
 // Loaded inventory (filled by loadInventory). Null until a load is attempted.

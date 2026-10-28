@@ -29,6 +29,10 @@ export function freshState() {
     veryYoung: false,
     onboardingDone: false,
     autoModelRemaining: DEFAULT_AUTO_MODEL,
+    // Iteration 7 (D7 / AC-K7): auto-read the word on display (default ON).
+    autoRead: true,
+    // Iteration 7 (D3 / AC-K3): adult-chosen reading voice id (null = auto).
+    voicePref: null,
     streak: 0,
     bestStreak: 0,
     stars: 0,
@@ -83,6 +87,13 @@ export function migrate(raw) {
     stickers: Array.isArray(raw.stickers) ? [...raw.stickers] : [],
   };
   merged.version = 2;
+  // Iteration 7: fill the new settings for older v2 states (AC-K7.2 / AC-K3.3).
+  // A saved boolean/string is preserved; a missing key defaults from base.
+  merged.autoRead = typeof raw.autoRead === "boolean" ? raw.autoRead : base.autoRead;
+  merged.voicePref =
+    typeof raw.voicePref === "string" || raw.voicePref === null
+      ? raw.voicePref
+      : base.voicePref;
   // Normalise item records so every item has all fields.
   for (const id of Object.keys(merged.items)) {
     merged.items[id] = { ...freshItem(), ...merged.items[id] };

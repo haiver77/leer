@@ -45,6 +45,10 @@ export function createGame(handlers) {
   progress.ensureDailyGoal(p);
   progress.save(p);
 
+  // Apply the persisted reading-voice override so the very first read already
+  // uses it (D3 / AC-K3.3). null = "Automática" → Spanish auto-pick.
+  speech.setPreferredVoice(p.voicePref || null);
+
   // Kick off the CSV word-inventory load (AC-G4.1). Until it resolves the
   // embedded fallback is used (AC-G4.4); when it resolves we re-render so a
   // word level already on screen picks up the full, ordered inventory.
@@ -209,12 +213,17 @@ export function createGame(handlers) {
     progress.recordSeen(state.progress, next);
     save();
     render();
-    // Auto-read on display (iteration 6, D4 / AC-J4): every new word is modeled
-    // aloud as soon as it appears — no tap, no throttle. speech.speak (via
-    // audio.model) resolves safely and cancels any in-flight utterance, so this
-    // never blocks, throws, or dead-ends (AC-J4.3). One read per new word.
-    handlers.onMascot("model");
-    audio.model(state.current);
+    // Auto-read on display (iteration 6, D4), now gated by the adult setting
+    // (iteration 7, D7 / AC-K7.3). When ON, every new word is modeled aloud as
+    // soon as it appears — no tap, no throttle — with Lalo in "model". When
+    // OFF, no word is spoken automatically and Lalo is not forced to "model";
+    // the child can still hear it on demand (tap / Enter / Space / 'l'). The
+    // read reuses speech.speak (via audio.model), which resolves safely and
+    // cancels any in-flight utterance, so it never blocks/throws (AC-K6.2).
+    if (state.progress.autoRead) {
+      handlers.onMascot("model");
+      audio.model(state.current);
+    }
   }
 
   // ---- Speech / answering ---------------------------------------------------
@@ -280,6 +289,10 @@ export function createGame(handlers) {
 
     const milestone = reward.milestone;
     celebrate.play({ milestone });
+    // Improved success animation (D5 / AC-K5): let the UI pop the hero card in
+    // step with the burst. Optional + short, well within ADVANCE_DELAY_MS, so
+    // it never delays the auto-advance/read of the next word (AC-K5.3).
+    if (typeof handlers.onSuccessPop === "function") handlers.onSuccessPop({ milestone });
     handlers.onMascot("cheer");
     const base = verified ? "¡Muy bien! 🎉" : "¡Listo! ✅";
     handlers.onFeedback(milestone ? "¡Increíble! 🌟🌟" : base, "success");
@@ -387,6 +400,26 @@ export function createGame(handlers) {
     render();
   }
 
+  /** Toggle the auto-read-on-display setting (D7 / AC-K7). Persists + applies. */
+  function setAutoRead(on) {
+    state.progress.autoRead = Boolean(on);
+    save();
+    render();
+  }
+
+  /**
+   * Set the adult-chosen reading voice (D3 / AC-K3). `id` is a stable voiceId,
+   * or null/"" for "Automática". Persists and applies to speech immediately so
+   * the next read uses it. Never throws.
+   */
+  function setVoicePref(id) {
+    const value = id ? String(id) : null;
+    state.progress.voicePref = value;
+    speech.setPreferredVoice(value);
+    save();
+    render();
+  }
+
   function resetProgress() {
     state.progress = progress.reset();
     progress.ensureDailyGoal(state.progress);
@@ -426,6 +459,10 @@ export function createGame(handlers) {
       veryYoung: state.progress.veryYoung,
       dailyGoal: state.progress.dailyGoal,
       noSpanishVoice: speech.noSpanishVoiceDetected(),
+      // Iteration 7 settings for the adult panel (D3 / D7).
+      autoRead: state.progress.autoRead,
+      voicePref: state.progress.voicePref,
+      availableVoices: speech.availableVoices(),
     };
   }
 
@@ -450,6 +487,8 @@ export function createGame(handlers) {
     swipePrev,
     setDifficulty,
     setVeryYoung,
+    setAutoRead,
+    setVoicePref,
     resetProgress,
     summaryContinue,
     dashboardStats,
