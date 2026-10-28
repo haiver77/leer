@@ -14,26 +14,34 @@
 }
 
 :root {
-  --bg-top: #4cc9f0;
-  --bg-bottom: #4895ef;
+  /* Iteration 5 (D4): a more vibrant, higher-contrast, colourful kid palette.
+     The background is a deeper multi-stop gradient; accents are more saturated.
+     All text colours keep >= 4.5:1 against their surface (see 5_plan.md). */
+  --bg-top: #5b8cff;
+  --bg-mid: #8a5cf6;
+  --bg-bottom: #ff5db0;
   --card-bg: #ffffff;
-  --ink: #1d2b53;
-  --ink-soft: #3a4a7a;
-  --accent: #ff5d8f;
+  --ink: #141a3a; /* deep indigo ink — >= 12:1 on white */
+  --ink-soft: #33407a;
+  --accent: #ff2d78;
   --accent-ink: #ffffff;
-  --success: #06d6a0;
-  --success-ink: #063b2e;
-  --near: #ff9e00;
-  --near-ink: #4a3200;
-  --retry: #ffb703;
-  --retry-ink: #4a3200;
-  --listen: #9b5de5;
-  --next: #4361ee;
-  --danger: #e5383b;
-  --locked: #9aa3b8;
+  --success: #04b488; /* darker green: #fff text >= 4.5:1 */
+  --success-ink: #ffffff;
+  --near: #c25c00; /* darker amber: #fff text >= 4.5:1 */
+  --near-ink: #ffffff;
+  --retry: #b3560a; /* darker: #fff text >= 4.5:1 */
+  --retry-ink: #ffffff;
+  --listen: #7b2fe0;
+  --next: #2f49d8;
+  --danger: #d12026;
+  --locked: #8089a6;
   --radius: 22px;
   --tap: 56px; /* min tap target, comfortably above 48px */
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  --shadow: 0 10px 30px rgba(20, 26, 58, 0.22);
+  --shadow-deep: 0 18px 40px rgba(20, 26, 58, 0.3), 0 4px 10px rgba(20, 26, 58, 0.18);
+  /* Default per-family card accent/tint (overridden per level from main.js). */
+  --card-accent: var(--next);
+  --card-tint: #e9eeff;
   --font-display: "Lalo Rounded", "Baloo 2", "Comic Sans MS", "Segoe UI", system-ui,
     -apple-system, sans-serif;
 }
@@ -51,7 +59,7 @@ body {
 body {
   font-family: var(--font-display);
   color: var(--ink);
-  background: linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+  background: linear-gradient(160deg, var(--bg-top), var(--bg-mid) 55%, var(--bg-bottom));
   background-attachment: fixed;
   min-height: 100vh;
   min-height: 100dvh;
@@ -103,6 +111,10 @@ body {
 }
 .mascot-medium {
   width: clamp(80px, 22vw, 120px);
+}
+.mascot-small {
+  width: clamp(48px, 12vw, 72px);
+  flex: 0 0 auto;
 }
 .mascot .lalo {
   width: 100%;
@@ -168,10 +180,9 @@ body {
   align-items: center;
   gap: 16px;
 }
-.syllable-card-demo {
-  width: min(50vw, 220px);
-  max-height: 30vh;
-  font-size: clamp(3rem, 16vw, 6rem);
+.word-demo {
+  font-size: clamp(2.4rem, 13vw, 4.6rem);
+  padding: clamp(10px, 3vw, 22px) clamp(20px, 7vw, 48px);
 }
 .onboarding-text {
   color: #fff;
@@ -253,7 +264,6 @@ body {
 .icon-btn:focus-visible,
 .map-node:focus-visible,
 .word-tile:focus-visible,
-.chip-btn:focus-visible,
 .text-link:focus-visible,
 .gate-choice:focus-visible {
   outline: 4px solid #fff;
@@ -264,9 +274,6 @@ body {
   background: var(--accent);
   font-size: clamp(1.5rem, 6vw, 2.1rem);
   padding: 18px 44px;
-}
-.btn-listen {
-  background: var(--listen);
 }
 .btn-speak {
   background: var(--success);
@@ -346,26 +353,27 @@ body {
   flex-wrap: wrap;
   justify-content: center;
 }
-.chip-btn {
-  min-height: var(--tap);
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 700;
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  cursor: pointer;
-}
+/* The "Siguiente" chip (#next-btn / .chip-btn) was removed in iteration 6
+   (D5 / AC-J5): advancing is by left-swipe or ArrowRight. The now-dead
+   .chip-btn rule is deleted accordingly. */
 
-/* ---------- Game screen ---------- */
+/* ---------- Game screen (immersive: card = hero) ---------- */
+/* The play screen is a full-height column: a compact top bar, a flexible
+   hero region (the card) that eats all spare space, and a compact bottom
+   action cluster. (G1/G2) */
+.screen.game {
+  min-height: 100dvh;
+  justify-content: flex-start;
+  gap: clamp(8px, 1.6vh, 16px);
+  padding: clamp(6px, 1.4vh, 14px) 0;
+}
 .game-top {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex: 0 0 auto;
 }
 .icon-btn {
   min-height: var(--tap);
@@ -396,78 +404,175 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* The hero card host: fills all spare vertical space and centers the card.
+   touch-action: pan-y lets vertical page scroll through while the recognizer
+   captures horizontal swipes (G3). */
+.card-host {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0; /* allow the flex child to shrink below content size */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 1.4vh, 16px);
+  padding: clamp(8px, 2vw, 20px);
+  touch-action: pan-y;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Keyboard focus affordance for tap-to-hear (H6): a clearly visible ring when
+   the card is reached with the keyboard (not shown for pointer focus). */
+.card-host:focus-visible {
+  outline: none;
+}
+.card-host:focus-visible .word-view {
+  outline: 4px solid var(--listen);
+  outline-offset: 4px;
+  box-shadow: var(--shadow-deep), 0 0 0 8px rgba(123, 47, 224, 0.32);
+}
+
+/* The small item-art cue sits above the card, deliberately subordinate. */
 .item-art {
-  width: clamp(72px, 20vw, 120px);
-  height: clamp(72px, 20vw, 120px);
+  flex: 0 0 auto;
+  width: clamp(56px, 12vh, 110px);
+  height: clamp(56px, 12vh, 110px);
 }
 .item-art svg {
   width: 100%;
   height: 100%;
 }
 
-.syllable-card {
-  background: var(--card-bg);
-  color: var(--ink);
-  width: min(70vw, 360px);
-  aspect-ratio: 1 / 1;
-  max-height: 38vh;
-  border-radius: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(4.5rem, 24vw, 10rem);
-  font-weight: 800;
-  box-shadow: var(--shadow);
-  user-select: none;
-  animation: pop 0.35s ease;
-}
-.syllable-card[hidden] {
-  display: none;
-}
-
-/* ---------- Word view (F5) ---------- */
+/* ---------- Word view (F5 / G1) — the only card content (D1) ---------- */
+/* Fills the card host; parts + whole stack and scale fluidly. The whole-word
+   font is driven by the number of parts so a long 3-syllable word fits with no
+   overflow (G1.2). */
 .word-view {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 96vw;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  animation: pop 0.35s ease;
+  justify-content: center;
+  gap: clamp(10px, 2.4vh, 24px);
+  /* Hero-card depth (AC-I4.2): a soft inner gradient over a themed tint, a
+     rounded accent border tinted by the current family, and layered shadows
+     (one ambient + one tight) + an inner highlight for real depth. */
+  background:
+    radial-gradient(130% 120% at 50% 10%, #ffffff 0%, #ffffff 46%, var(--card-tint) 100%);
+  border-radius: clamp(24px, 5vw, 44px);
+  border: clamp(4px, 1vw, 7px) solid var(--card-accent);
+  box-shadow: var(--shadow-deep),
+    0 0 0 clamp(2px, 0.5vw, 4px) color-mix(in srgb, var(--card-accent) 22%, transparent),
+    inset 0 3px 12px rgba(255, 255, 255, 0.95),
+    inset 0 -10px 26px rgba(20, 26, 58, 0.07);
+  padding: clamp(14px, 3.5vw, 36px);
 }
 .word-view[hidden] {
   display: none;
 }
+/* Entrance animation when a new word appears (AC-I4.2). Toggled from main.js
+   via .word-enter so it replays per item; <= 600ms, non-blocking. */
+.word-view.word-enter {
+  animation: word-enter 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
 .word-parts {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(6px, 1.5vw, 14px);
 }
 .word-tile {
-  background: var(--card-bg);
+  background: linear-gradient(180deg, #ffffff, #eef2ff);
   color: var(--ink);
   font-family: inherit;
   font-weight: 800;
-  font-size: clamp(2rem, 10vw, 3.6rem);
-  min-width: 96px;
-  min-height: 96px;
-  border: 4px solid var(--listen);
-  border-radius: 24px;
+  font-size: clamp(1.8rem, 9vw, 4rem);
+  min-width: var(--tap);
+  min-height: var(--tap);
+  border: 4px solid var(--card-accent);
+  border-radius: 20px;
   cursor: pointer;
-  box-shadow: var(--shadow);
-  padding: 8px 18px;
+  box-shadow: 0 6px 16px rgba(20, 26, 58, 0.16);
+  padding: clamp(6px, 1.4vw, 14px) clamp(10px, 2.4vw, 22px);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.word-tile:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 8px 20px rgba(20, 26, 58, 0.22);
+}
+.word-tile:active {
+  transform: translateY(2px) scale(0.97);
+}
+/* a 3-part word gets slightly smaller tiles so the row never overflows 320px */
+.word-view[data-parts="3"] .word-tile {
+  font-size: clamp(1.4rem, 7vw, 3.2rem);
 }
 .word-plus {
-  color: #fff;
-  font-size: clamp(1.8rem, 8vw, 3rem);
+  color: var(--ink-soft);
+  font-size: clamp(1.4rem, 6vw, 2.6rem);
   font-weight: 800;
 }
 .word-whole {
-  background: var(--next);
+  background: linear-gradient(165deg, var(--card-accent),
+    color-mix(in srgb, var(--card-accent) 72%, #000 16%));
   color: #fff;
-  font-size: clamp(2.4rem, 12vw, 4.4rem);
+  font-size: clamp(2.2rem, 13vw, 5.5rem);
+  line-height: 1.05;
   font-weight: 800;
-  padding: 10px 36px;
-  border-radius: 24px;
-  box-shadow: var(--shadow);
+  padding: clamp(8px, 2vw, 16px) clamp(18px, 6vw, 44px);
+  border-radius: 20px;
+  box-shadow: var(--shadow), inset 0 2px 6px rgba(255, 255, 255, 0.28);
+  text-shadow: 0 2px 0 rgba(20, 26, 58, 0.25);
+  max-width: 100%;
+  text-align: center;
+  word-break: break-word;
+}
+/* the longest 3-syllable words get a smaller whole-word size to stay on-card */
+.word-view[data-parts="3"] .word-whole {
+  font-size: clamp(1.8rem, 10vw, 4.4rem);
+}
+
+/* ---------- First-use gesture hint (G3) — subtle, non-blocking ---------- */
+.gesture-hint {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(4px, 1.4vh, 12px);
+  transform: translateX(-50%);
+  display: flex;
+  gap: clamp(10px, 3vw, 22px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(29, 43, 83, 0.72);
+  color: #fff;
+  font-size: clamp(0.8rem, 3.2vw, 1rem);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hint-fade 0.5s ease, hint-bob 2.4s ease-in-out 0.5s infinite;
+}
+.gesture-hint[hidden] {
+  display: none;
+}
+.gesture-hint-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- Play bottom cluster (strictly necessary controls, G2) ---------- */
+.play-bottom {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.6vh, 14px);
 }
 
 /* ---------- Feedback ---------- */
@@ -484,6 +589,7 @@ body {
 .feedback[data-kind="success"] {
   background: var(--success);
   color: var(--success-ink);
+  animation: feedback-pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.3);
 }
 .feedback[data-kind="near"] {
   background: var(--near);
@@ -495,11 +601,6 @@ body {
 }
 .feedback[data-kind="neutral"] {
   background: rgba(255, 255, 255, 0.18);
-}
-
-.mascot-row {
-  display: flex;
-  justify-content: center;
 }
 
 /* ---------- World map (F2) ---------- */
@@ -547,34 +648,65 @@ body {
   gap: clamp(12px, 3vw, 20px);
 }
 .map-node {
+  --node-accent: var(--next); /* per-family colour, set by id below */
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 16px 12px;
-  min-height: 140px;
+  padding: 18px 12px;
+  min-height: 148px;
   border-radius: 24px;
-  border: 3px solid rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.92);
+  border: 4px solid var(--node-accent);
+  /* colourful per-family fill with depth (AC-I4.3): a soft tint-to-white
+     gradient so the node reads as a glossy tile, not a flat chip. */
+  background:
+    linear-gradient(170deg, #ffffff 0%,
+      color-mix(in srgb, var(--node-accent) 16%, #ffffff) 100%);
   color: var(--ink);
   font-family: inherit;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: transform 0.12s ease;
+  box-shadow: var(--shadow),
+    0 0 0 3px color-mix(in srgb, var(--node-accent) 20%, transparent),
+    inset 0 2px 8px rgba(255, 255, 255, 0.9);
+  transition: transform 0.14s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+/* Per-family colours (AC-I4.3), matching the card themes in main.js. */
+.map-node[data-id="pal-2-abiertas-1"] { --node-accent: #ff2d78; }
+.map-node[data-id="pal-2-abiertas-2"] { --node-accent: #0ea5d8; }
+.map-node[data-id="pal-2-abiertas-3"] { --node-accent: #06b47f; }
+.map-node[data-id="pal-2-especiales"] { --node-accent: #f08a00; }
+.map-node[data-id="pal-3-abiertas"] { --node-accent: #e0501f; }
+.map-node[data-id="pal-3-especiales"] { --node-accent: #8338ec; }
+
+.map-node:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-deep),
+    0 0 0 3px color-mix(in srgb, var(--node-accent) 32%, transparent);
+  filter: brightness(1.03);
 }
 .map-node:active {
-  transform: scale(0.97);
+  transform: translateY(0) scale(0.96);
+}
+/* a gentle pop when an unlocked node first appears */
+.map-node[data-state="unlocked"],
+.map-node[data-state="completed"] {
+  animation: node-pop 0.34s ease;
 }
 .map-node[data-state="locked"] {
-  background: rgba(200, 205, 220, 0.6);
+  --node-accent: var(--locked);
+  background: linear-gradient(170deg, #eef0f6, #d9dde8);
   color: var(--locked);
   cursor: not-allowed;
-  filter: grayscale(0.7);
+  filter: grayscale(0.55);
+  box-shadow: inset 0 2px 6px rgba(20, 26, 58, 0.08);
 }
 .map-node[data-state="completed"] {
   border-color: var(--success);
+  box-shadow: var(--shadow),
+    0 0 0 3px color-mix(in srgb, var(--success) 40%, transparent),
+    inset 0 2px 8px rgba(255, 255, 255, 0.9);
 }
 .map-node-art {
   width: 72px;
@@ -682,6 +814,33 @@ body {
   border-color: var(--next);
   color: var(--next);
 }
+/* Spanish-voice notice (AC-I2.5): an adult-facing alert, hidden unless shown. */
+.voice-notice {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 4px 0 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff4e0;
+  border: 3px solid var(--near);
+  color: #3a2a00;
+}
+.voice-notice[hidden] {
+  display: none;
+}
+.voice-notice p {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.voice-notice-icon {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  flex: 0 0 auto;
+}
 .dash-stats {
   width: 100%;
   display: grid;
@@ -720,6 +879,25 @@ body {
   letter-spacing: 0.05em;
   color: var(--accent);
   margin: 0;
+}
+.dash-note {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  margin: 4px 0;
+  line-height: 1.45;
+}
+.dash-order {
+  margin: 6px 0;
+  padding-left: 1.3em;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.dash-order li {
+  margin-bottom: 6px;
+}
+.dash-order strong {
+  color: var(--ink);
 }
 .toggle {
   display: flex;
@@ -808,6 +986,17 @@ body.very-young .daily-goal-label,
 body.very-young .feedback {
   display: none;
 }
+/* keep the gesture hint's icons, drop its Spanish words in very-young mode */
+body.very-young .gesture-hint-item {
+  font-size: 1.6em;
+  gap: 0;
+}
+body.very-young .gesture-hint-item {
+  font-size: 0; /* hide the text nodes */
+}
+body.very-young .gesture-hint-item span[aria-hidden="true"] {
+  font-size: 1.6rem; /* restore the emoji size */
+}
 body.very-young .btn-primary-mic span[aria-hidden="true"] {
   font-size: 1.8em;
 }
@@ -848,6 +1037,63 @@ body.very-young .dashboard .feedback {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+/* New-word entrance on the hero card (AC-I4.2) — lift + settle, <= 600ms. */
+@keyframes word-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+  }
+  60% {
+    transform: translateY(0) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+/* Map-node pop as a node appears/unlocks (AC-I4.3). */
+@keyframes node-pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+/* Success-feedback pop (AC-I4.4). */
+@keyframes feedback-pop {
+  0% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes hint-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes hint-bob {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
   }
 }
 @keyframes lalo-breathe {
@@ -905,20 +1151,32 @@ body.very-young .dashboard .feedback {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* AC-I4.5: disable ALL non-essential motion — entrance, pops, gradient
+     motion, hints, mascot bounce — and keep the reading flow fully usable. */
   .screen,
-  .syllable-card,
   .word-view,
-  .summary-sticker {
+  .word-view.word-enter,
+  .summary-sticker,
+  .gesture-hint,
+  .feedback[data-kind="success"],
+  .map-node,
+  .map-node[data-state="unlocked"],
+  .map-node[data-state="completed"] {
     animation: none;
   }
   .btn-speak.is-listening {
     animation: none;
   }
   .btn:active,
-  .map-node:active {
+  .map-node:active,
+  .map-node:hover,
+  .word-tile:active,
+  .word-tile:hover {
     transform: none;
   }
-  .daily-goal-fill {
+  .daily-goal-fill,
+  .word-tile,
+  .map-node {
     transition: none;
   }
   /* mascot: swap motion for a static expressive pose (F10.3) */
@@ -939,32 +1197,114 @@ body.very-young .dashboard .feedback {
   .map-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  /* At very narrow widths (down to 320px) keep the item-art cue subordinate and
+     fully on-screen so it never clips or crowds the dominant card (H5.1). The
+     accent border is included in the card's min(92vw,...) width, so no overflow. */
+  .item-art {
+    width: clamp(48px, 10vh, 84px);
+    height: clamp(48px, 10vh, 84px);
+  }
+  .card-host {
+    gap: clamp(4px, 1vh, 10px);
+    padding: clamp(6px, 1.5vw, 14px);
+  }
 }
 @media (orientation: landscape) and (max-height: 560px) {
   .app {
     align-items: flex-start;
   }
-  .syllable-card {
-    max-height: 50vh;
-    width: min(38vw, 260px);
+  /* In short-landscape, the card is sized off height and the item-art shrinks
+     so the hero still fills the viewport without pushing controls off (G1). */
+  .word-view {
+    gap: clamp(6px, 1.4vh, 14px);
+    padding: clamp(10px, 2.4vw, 24px);
+  }
+  .word-whole {
+    font-size: clamp(1.8rem, 8vh, 4rem);
+  }
+  .item-art {
+    width: clamp(44px, 10vh, 80px);
+    height: clamp(44px, 10vh, 80px);
+  }
+  .word-view[data-parts="3"] .word-whole {
+    font-size: clamp(1.6rem, 7vh, 3.4rem);
   }
 }
 
-/* ---------- High-contrast preference ---------- */
+/* ---------- High-contrast preference (AC-I4.6) ---------- */
 @media (prefers-contrast: more) {
   .feedback[data-kind="neutral"] {
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
   }
   .chip,
   .map-node {
     border-width: 4px;
   }
   .score,
-  .syllable-card,
   .map-node {
+    color: #000;
+  }
+  /* Richer card/node depth degrades to solid, high-contrast surfaces so the
+     large text keeps >= 4.5:1 and no gradient carries meaning (AC-I4.6). */
+  .word-view {
+    background: #fff;
+    border-color: #000;
+    box-shadow: var(--shadow);
+  }
+  .word-whole {
+    background: #000;
+    color: #fff;
+    text-shadow: none;
+  }
+  .word-tile {
+    background: #fff;
+    border-color: #000;
+    color: #000;
+  }
+  .map-node {
+    background: #fff;
+    border-color: #000;
+    box-shadow: var(--shadow);
+  }
+  .map-node[data-state="locked"] {
+    background: #e6e6e6;
+    color: #000;
+  }
+  .map-node[data-state="completed"] {
+    border-color: #006b4f;
+  }
+  .voice-notice {
+    background: #fff;
+    border-color: #000;
     color: #000;
   }
   .text-link {
     opacity: 1;
+  }
+}
+
+/* Forced-colors (Windows High Contrast): lean on system colours, drop gradients
+   and decorative shadows so meaning never relies on a faint fill (AC-I4.6). */
+@media (forced-colors: active) {
+  .word-view,
+  .word-tile,
+  .map-node,
+  .voice-notice,
+  .score,
+  .dashboard {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+  .word-whole {
+    background: Canvas;
+    color: CanvasText;
+    border: 2px solid CanvasText;
+    text-shadow: none;
+  }
+  .map-node[data-state="completed"] {
+    border-color: Highlight;
   }
 }

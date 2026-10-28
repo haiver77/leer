@@ -37,11 +37,29 @@ test("onCorrect returns stars + milestone flag at the boundary", () => {
   assert.equal(r5.milestone, true);
 });
 
-test("every level has a sticker in the catalog", () => {
+test("every level has a sticker in the catalog (word-level ids, D1)", () => {
   for (const lvl of allLevels()) {
     const stk = stickerForLevel(lvl.id);
     assert.ok(stk, `level ${lvl.id} should grant a sticker`);
     assert.ok(stickerById(stk), `sticker ${stk} should exist in catalog`);
+  }
+});
+
+test("no sticker references a removed syllable-era level (AC-I1.1)", () => {
+  const retired = new Set([
+    "isla-p", "isla-m", "isla-s", "isla-t", "isla-l", "isla-d",
+    "mixto", "digrafos", "cerradas", "palabras", "palabras-3",
+  ]);
+  for (const s of STICKER_CATALOG) {
+    assert.ok(!retired.has(s.levelId), `sticker ${s.id} still points at removed level ${s.levelId}`);
+  }
+});
+
+test("every non-milestone sticker points at a real current level", () => {
+  const liveIds = new Set(allLevels().map((l) => l.id));
+  for (const s of STICKER_CATALOG) {
+    if (s.levelId == null) continue; // milestone sticker
+    assert.ok(liveIds.has(s.levelId), `sticker ${s.id} → ${s.levelId} is a live level`);
   }
 });
 
@@ -50,6 +68,19 @@ test("catalog entries are unique by id and have art", () => {
   assert.equal(new Set(ids).size, ids.length, "sticker ids unique");
   for (const s of STICKER_CATALOG) {
     assert.ok(s.artId && s.title, `${s.id} has art + title`);
+  }
+});
+
+test("the milestone sticker is kept (levelId null)", () => {
+  const milestone = STICKER_CATALOG.find((s) => s.levelId === null);
+  assert.ok(milestone, "a milestone sticker exists");
+});
+
+test("AC-J3.6: the new 4-syllable bands each have a sticker", () => {
+  const fourBands = allLevels().filter((l) => l.id.startsWith("pal-4-"));
+  assert.ok(fourBands.length >= 1, "there is a pal-4-* band");
+  for (const b of fourBands) {
+    assert.ok(stickerForLevel(b.id), `band ${b.id} has a sticker`);
   }
 });
 

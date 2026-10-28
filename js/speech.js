@@ -156,58 +156,188 @@ export const recognitionSupported = Boolean(SpeechRecognitionCtor);
 /** True when speech synthesis is available. */
 export const synthesisSupported = hasWindow && "speechSynthesis" in window;
 
+// ---- Pure Spanish-voice selection (AC-I2.1) — unit-testable in Node ---------
+
 /**
- * Try to find a Spanish voice. Voices may load asynchronously, so we also
- * listen for `voiceschanged` once.
- * @returns {SpeechSynthesisVoice|null}
+ * Normalize a voice's lang tag for bucketing: lowercase, "_" → "-".
+ * e.g. "es_AR" → "es-ar", "ES" → "es".
+ * @param {string} lang
+ * @returns {string}
  */
-function pickSpanishVoice() {
-  if (!synthesisSupported) return null;
-  const voices = window.speechSynthesis.getVoices() || [];
-  return (
-    voices.find((v) => /^es(-|_|$)/i.test(v.lang)) ||
-    voices.find((v) => /spanish|español/i.test(v.name)) ||
-    null
-  );
-}
-
-// Warm up the voice list (Chrome populates it lazily).
-if (synthesisSupported) {
-  window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged = () => {
-    window.speechSynthesis.getVoices();
-  };
+function normLang(lang) {
+  return String(lang || "").toLowerCase().replace(/_/g, "-");
 }
 
 /**
- * Speak the given text in Spanish. Resolves when done (or immediately/safely
- * if synthesis or an es voice is unavailable — never throws, never dead-ends).
+ * Rank a single voice by Spanish-preference bucket (lower = better). Buckets:
+ *   0 es-ES · 1 es-MX · 2 es-US · 3 es-419 · 4 any other es-* ·
+ *   5 name contains spanish/español · 6 (not Spanish → excluded by caller).
+ * @param {{lang?: string, name?: string}} v
+ * @returns {number} 0..5 for a Spanish voice, 6 when not Spanish
+ */
+function spanishBucket(v) {
+  const lang = normLang(v && v.lang);
+  if (lang === "es-es") return 0;
+  if (lang === "es-mx") return 1;
+  if (lang === "es-us") return 2;
+  if (lang === "es-419") return 3;
+  if (/^es(-|$)/.test(lang)) return 4; // any other es-* (incl. bare "es")
+  if (/spanish|español/i.test((v && v.name) || "")) return 5;
+  return 6;
+}
+
+/**
+ * Pick the best Spanish voice from a list, or null when none qualifies. PURE —
+ * takes an array of plain {lang,name?,localService?,default?} objects, uses no
+ * browser globals, so it can be unit-tested in Node (AC-I2.1).
+ *
+ * Preference: es-ES > es-MX > es-US > es-419 > any other es-* (case/-/_
+ * insensitive) > name contains spanish/español > null. Within the same bucket,
+ * a localService or default voice is preferred as a stable tiebreak.
+ *
+ * @param {Array<{lang?: string, name?: string, localService?: boolean, default?: boolean}>} voices
+ * @returns {object|null}
+ */
+export function pickSpanishVoice(voices) {
+  if (!Array.isArray(voices) || voices.length === 0) return null;
+  let best = null;
+  let bestBucket = 6;
+  let bestTie = -1;
+  for (const v of voices) {
+    if (!v) continue;
+    const bucket = spanishBucket(v);
+    if (bucket >= 6) continue; // not a Spanish voice
+    // Tiebreak within a bucket: prefer localService, then default.
+    const tie = (v.localService ? 2 : 0) + (v.default ? 1 : 0);
+    if (bucket < bestBucket || (bucket === bestBucket && tie > bestTie)) {
+      best = v;
+      bestBucket = bucket;
+      bestTie = tie;
+    }
+  }
+  return best;
+}
+
+/**
+ * Whether the list contains any Spanish voice (lang es-* or name-matched).
+ * PURE. Drives the adult-facing "no Spanish voice" notice (AC-I2.5).
+ * @param {Array<{lang?: string, name?: string}>} voices
+ * @returns {boolean}
+ */
+export function hasSpanishVoice(voices) {
+  return pickSpanishVoice(voices) !== null;
+}
+
+// ---- Browser voice state (drives the dashboard notice, AC-I2.5) -------------
+
+// Tracks whether the last speak() found a Spanish voice. null = unknown (not
+// yet attempted). Exposed to the UI via noSpanishVoiceDetected().
+let _noSpanishVoice = null;
+
+/** getVoices() helper, tolerant of missing synthesis. */
+function getVoices() {
+  if (!synthesisSupported) return [];
+  return window.speechSynthesis.getVoices() || [];
+}
+
+/**
+ * Resolve once the voice list is usable: when getVoices() is already non-empty,
+ * when `voiceschanged` fires, or after a short timeout (so it never hangs).
+ * Chrome populates voices lazily, so the first speak() must await this.
+ * @param {number} [timeoutMs]
+ * @returns {Promise<Array>}
+ */
+function awaitVoices(timeoutMs = 1500) {
+  return new Promise((resolve) => {
+    if (!synthesisSupported) {
+      resolve([]);
+      return;
+    }
+    const existing = getVoices();
+    if (existing.length) {
+      resolve(existing);
+      return;
+    }
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        window.speechSynthesis.removeEventListener("voiceschanged", onChange);
+      } catch (_e) {
+        /* older impls use onvoiceschanged only */
+      }
+      resolve(getVoices());
+    };
+    const onChange = () => done();
+    try {
+      window.speechSynthesis.addEventListener("voiceschanged", onChange);
+    } catch (_e) {
+      window.speechSynthesis.onvoiceschanged = onChange;
+    }
+    const timer = setTimeout(done, timeoutMs);
+  });
+}
+
+// Warm up the voice list (Chrome populates it lazily) and keep the "no Spanish
+// voice" flag fresh as voices arrive.
+if (synthesisSupported) {
+  const refresh = () => {
+    const voices = getVoices();
+    if (voices.length) _noSpanishVoice = !hasSpanishVoice(voices);
+  };
+  refresh();
+  try {
+    window.speechSynthesis.addEventListener("voiceschanged", refresh);
+  } catch (_e) {
+    window.speechSynthesis.onvoiceschanged = refresh;
+  }
+}
+
+/**
+ * Whether the app has detected that NO Spanish voice is installed. Returns
+ * false until a determination is possible (list empty / not yet loaded), and
+ * true only once a non-empty voice list is seen with no Spanish voice in it.
+ * Read by the adult dashboard to show the voice notice (AC-I2.5).
+ * @returns {boolean}
+ */
+export function noSpanishVoiceDetected() {
+  return _noSpanishVoice === true;
+}
+
+/**
+ * Speak the given text in Spanish. Awaits the voice list, re-picks the voice
+ * every call via pickSpanishVoice(getVoices()), sets utter.lang to the picked
+ * voice's lang (else "es-ES"), and records the "no Spanish voice" state when
+ * none exists (AC-I2.2/I2.3). Resolves when done (or immediately/safely if
+ * synthesis is unavailable — never throws, never dead-ends; AC-I2.6).
  * @param {string} text
  * @returns {Promise<void>}
  */
-export function speak(text) {
-  return new Promise((resolve) => {
-    if (!synthesisSupported) {
-      resolve();
-      return;
-    }
-    try {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(String(text));
-      utter.lang = "es-ES";
-      utter.rate = 0.85; // a touch slower for young readers
-      utter.pitch = 1.1;
-      const voice = pickSpanishVoice();
-      if (voice) utter.voice = voice;
+export async function speak(text) {
+  if (!synthesisSupported) return;
+  try {
+    const voices = await awaitVoices();
+    const voice = pickSpanishVoice(voices);
+    // Record whether a Spanish voice exists so the dashboard can warn.
+    _noSpanishVoice = voices.length ? !voice : _noSpanishVoice;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(String(text));
+    utter.lang = voice && voice.lang ? voice.lang : "es-ES"; // best effort
+    utter.rate = 0.85; // a touch slower for young readers
+    utter.pitch = 1.1;
+    if (voice) utter.voice = voice;
+    await new Promise((resolve) => {
       utter.onend = () => resolve();
       utter.onerror = () => resolve();
       window.speechSynthesis.speak(utter);
       // Safety net in case onend never fires.
       setTimeout(resolve, 4000);
-    } catch (_e) {
-      resolve();
-    }
-  });
+    });
+  } catch (_e) {
+    /* never throw, never dead-end */
+  }
 }
 
 /**

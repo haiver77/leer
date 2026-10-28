@@ -6,7 +6,7 @@
 // after the first load (F13.2); bundled audio clips (when added) are listed
 // here so modeling works offline — TTS is the fallback for anything missing.
 
-const CACHE_VERSION = "lalo-silabas-v2.0.0";
+const CACHE_VERSION = "lalo-silabas-v6.0.0";
 
 // Real files that make up the offline app shell. Paths are relative to the SW
 // scope (the app/ folder when served from there).
@@ -17,7 +17,8 @@ const SHELL = [
   "./css/styles.css",
   "./js/main.js",
   "./js/game.js",
-  "./js/syllables.js",
+  // syllables.js is trimmed (iteration 5, D1) and no longer imported by the
+  // app shell, so it is dropped from the precache list.
   "./js/speech.js",
   "./js/celebrate.js",
   "./js/progress.js",
@@ -28,6 +29,11 @@ const SHELL = [
   "./js/art.js",
   "./js/audio.js",
   "./js/adultGate.js",
+  // Pedagogical word inventory — precached so words work offline. Iteration 6
+  // adds the 4-syllable list (AC-J2 / D2).
+  "./data/words-2syllables.csv",
+  "./data/words-3syllables.csv",
+  "./data/words-4syllables.csv",
   "./icons/icon.svg",
   "./icons/icon-maskable.svg",
   // PNG icons + bundled audio clips + the woff2 font are optional drop-ins;

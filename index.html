@@ -17,7 +17,7 @@
       <section id="welcome-screen" class="screen welcome" aria-labelledby="welcome-title">
         <div id="welcome-mascot" class="mascot mascot-big" aria-hidden="false"></div>
         <h1 id="welcome-title" class="title">Lalo y las Sílabas</h1>
-        <p class="subtitle">Mira, dila en voz alta y ¡celebra con Lalo!</p>
+        <p class="subtitle">Toca la palabra, dila en voz alta y ¡celebra con Lalo!</p>
         <button id="start-btn" type="button" class="btn btn-start">
           Empezar <span aria-hidden="true">▶️</span>
         </button>
@@ -31,9 +31,9 @@
         <h2 id="onboarding-title" class="sr-only">Cómo jugar</h2>
         <div id="onboarding-mascot" class="mascot mascot-big" aria-hidden="true"></div>
         <div class="onboarding-card">
-          <div id="onboarding-demo" class="syllable-card syllable-card-demo">Pa</div>
+          <div id="onboarding-demo" class="word-whole word-demo">pato</div>
           <p id="onboarding-text" class="onboarding-text" role="status" aria-live="polite">
-            Esta es tu sílaba.
+            Esta es tu palabra.
           </p>
         </div>
         <div class="onboarding-controls">
@@ -66,10 +66,11 @@
         <div id="map-grid" class="map-grid" role="list" aria-label="Niveles"></div>
       </section>
 
-      <!-- ============ Game / play screen ============ -->
+      <!-- ============ Game / play screen (immersive, card = hero) ======== -->
       <section id="game-screen" class="screen game" aria-labelledby="game-heading" hidden>
         <h2 id="game-heading" class="sr-only">Jugar</h2>
 
+        <!-- Compact top bar: quiet back + small score, never competing with the card -->
         <header class="game-top">
           <button id="back-btn" type="button" class="icon-btn icon-btn-quiet" aria-label="Volver al mapa">
             <span aria-hidden="true">🗺️</span>
@@ -81,53 +82,61 @@
           </div>
         </header>
 
-        <div id="item-art" class="item-art" aria-hidden="true"></div>
+        <!-- The HERO: the reading card fills the available content area (G1). -->
+        <!-- Tap = read aloud; swipe left = next (G3). Gestures are additive. -->
+        <div
+          id="card-host"
+          class="card-host"
+          role="group"
+          tabindex="0"
+          aria-label="Tarjeta de lectura. Tócala o pulsa Enter para oírla, desliza para la siguiente."
+          aria-keyshortcuts="Enter Space"
+        >
+          <span id="item-art" class="item-art" aria-hidden="true"></span>
 
-        <!-- Syllable view -->
-        <div id="syllable-card" class="syllable-card" role="img" aria-label="Sílaba">Pa</div>
-
-        <!-- Word view (parts + whole) -->
-        <div id="word-view" class="word-view" hidden>
-          <div class="word-parts">
-            <button id="word-part-0" type="button" class="word-tile" aria-label="Escuchar primera parte">Pa</button>
-            <span class="word-plus" aria-hidden="true">+</span>
-            <button id="word-part-1" type="button" class="word-tile" aria-label="Escuchar segunda parte">To</button>
+          <!-- Word view (the only card content now — words only, D1).
+               Shows the whole word plus its tappable syllable parts as a
+               within-word teaching aid. -->
+          <div id="word-view" class="word-view">
+            <div id="word-parts" class="word-parts"></div>
+            <div id="word-whole" class="word-whole" role="img" aria-label="Palabra">pato</div>
           </div>
-          <div id="word-whole" class="word-whole" role="img" aria-label="Palabra">pato</div>
+
+          <!-- Subtle, non-blocking first-use gesture hint (G3) -->
+          <div id="gesture-hint" class="gesture-hint" role="note" hidden>
+            <span class="gesture-hint-item"><span aria-hidden="true">👆</span> Toca para oír</span>
+            <span class="gesture-hint-item"><span aria-hidden="true">👈</span> Desliza: siguiente</span>
+          </div>
         </div>
 
-        <p id="feedback" class="feedback" role="status" aria-live="polite" data-kind="neutral">
-          Di la sílaba que ves 😊
-        </p>
+        <p id="feedback" class="feedback" role="status" aria-live="polite" data-kind="neutral"></p>
 
-        <div class="mascot-row">
-          <div id="game-mascot" class="mascot mascot-medium" aria-hidden="true"></div>
-        </div>
+        <div class="play-bottom">
+          <!-- Primary action: the mic (F8). Hearing the word is reached by
+               tapping the card (or Enter/Space/'l'), so the old 🔊 button is
+               gone (D3 / AC-I3.1). -->
+          <div class="primary-action">
+            <button
+              id="speak-btn"
+              type="button"
+              class="btn btn-speak btn-primary-mic"
+              aria-label="Hablar: di la palabra al micrófono"
+              aria-pressed="false"
+            >
+              <span aria-hidden="true">🎤</span> <span class="btn-label">Hablar</span>
+            </button>
+            <button id="confirm-btn" type="button" class="btn btn-confirm" aria-label="Un adulto confirma que lo dijo">
+              <span aria-hidden="true">✅</span> <span class="btn-label">¡Lo dije!</span>
+            </button>
+          </div>
 
-        <!-- Primary action: the mic (F8) -->
-        <div class="primary-action">
-          <button
-            id="speak-btn"
-            type="button"
-            class="btn btn-speak btn-primary-mic"
-            aria-label="Hablar: di la sílaba al micrófono"
-            aria-pressed="false"
-          >
-            <span aria-hidden="true">🎤</span> <span class="btn-label">Hablar</span>
-          </button>
-          <button id="confirm-btn" type="button" class="btn btn-confirm" aria-label="Un adulto confirma que lo dijo">
-            <span aria-hidden="true">✅</span> <span class="btn-label">¡Lo dije!</span>
-          </button>
-        </div>
-
-        <!-- Secondary, de-emphasised controls -->
-        <div class="secondary-controls">
-          <button id="listen-btn" type="button" class="chip-btn" aria-label="Escuchar la sílaba">
-            <span aria-hidden="true">🔊</span> <span class="btn-label">Escuchar</span>
-          </button>
-          <button id="next-btn" type="button" class="chip-btn" aria-label="Siguiente">
-            <span aria-hidden="true">➡️</span> <span class="btn-label">Siguiente</span>
-          </button>
+          <!-- Minimal subordinate cluster: just the mascot. The "Siguiente"
+               chip is removed (iteration 6, D5 / AC-J5.1); advancing is by
+               left-swipe or ArrowRight, kept discoverable via the gesture hint.
+               The 🔊 "Escuchar" button was removed in iteration 5. -->
+          <div class="secondary-controls">
+            <div id="game-mascot" class="mascot mascot-small" aria-hidden="true"></div>
+          </div>
         </div>
       </section>
 
@@ -165,8 +174,19 @@
           <span class="spacer" aria-hidden="true"></span>
         </header>
 
+        <!-- Spanish-voice notice (AC-I2.5): shown only when no Spanish voice is
+             detected on the device; the speech module drives its visibility. -->
+        <div id="voice-notice" class="voice-notice" role="alert" hidden>
+          <span class="voice-notice-icon" aria-hidden="true">🔈</span>
+          <p>
+            No se encontró una voz en español en este dispositivo. La lectura puede
+            sonar en otro idioma. Instala una voz en español en los ajustes del
+            sistema.
+          </p>
+        </div>
+
         <div class="dash-stats">
-          <div class="dash-stat"><span class="dash-num" id="dash-mastered">0/0</span><span class="dash-label">Sílabas dominadas</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-mastered">0/0</span><span class="dash-label">Palabras dominadas</span></div>
           <div class="dash-stat"><span class="dash-num" id="dash-stars">0</span><span class="dash-label">Estrellas</span></div>
           <div class="dash-stat"><span class="dash-num" id="dash-streak">0</span><span class="dash-label">Racha</span></div>
           <div class="dash-stat"><span class="dash-num" id="dash-best">0</span><span class="dash-label">Mejor racha</span></div>
@@ -174,8 +194,33 @@
         </div>
 
         <div class="dash-section">
-          <h3>Sílabas difíciles</h3>
+          <h3>Palabras difíciles</h3>
           <p id="dash-trouble" class="dash-trouble">Ninguna todavía 👍</p>
+        </div>
+
+        <div class="dash-section">
+          <h3>Orden de aprendizaje</h3>
+          <p class="dash-note">
+            Se leen <strong>palabras</strong> completas, nunca sílabas sueltas. Cada
+            palabra se divide en sílabas (<em>pa-to</em>) solo para ayudar a decodificarla.
+            Las familias de palabras aparecen de lo más fácil a lo más difícil:
+          </p>
+          <ol class="dash-order">
+            <li>Palabras de <strong>2 sílabas</strong> con sílabas abiertas (consonante +
+              vocal): <strong>m, p, l, s, t</strong> primero, luego <strong>d, n, ñ</strong>
+              y después <strong>f, b, v, c/k, g, j, r</strong>.</li>
+            <li>Palabras de <strong>2 sílabas</strong> con sonidos especiales (dígrafos
+              <strong>ch, ll, rr</strong>, la <strong>z</strong> y sílabas cerradas como
+              <em>limón, pastel</em>).</li>
+            <li>Palabras largas de <strong>3 sílabas</strong>, primero las fáciles y al
+              final las especiales (<em>cereza, gallina</em>).</li>
+            <li>Palabras de <strong>4 sílabas</strong> al final, el gran reto
+              (<em>mariposa, elefante, chocolate</em>).</li>
+          </ol>
+          <p class="dash-note">
+            Cada palabra se ordena por su consonante más difícil, su número de sílabas
+            (2 antes que 3 antes que 4) y su tipo de sílaba (abiertas antes que cerradas).
+          </p>
         </div>
 
         <div class="dash-section">

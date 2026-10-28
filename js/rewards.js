@@ -15,16 +15,19 @@ export const MILESTONE_EVERY = 5;
  * @type {Array<{id: string, title: string, artId: string, levelId: string|null}>}
  */
 export const STICKER_CATALOG = [
-  { id: "stk-p", title: "Pingüino", artId: "sticker-p", levelId: "isla-p" },
-  { id: "stk-m", title: "Mono", artId: "sticker-m", levelId: "isla-m" },
-  { id: "stk-s", title: "Sol", artId: "sticker-s", levelId: "isla-s" },
-  { id: "stk-t", title: "Tortuga", artId: "sticker-t", levelId: "isla-t" },
-  { id: "stk-l", title: "León", artId: "sticker-l", levelId: "isla-l" },
-  { id: "stk-d", title: "Dinosaurio", artId: "sticker-d", levelId: "isla-d" },
-  { id: "stk-mixto", title: "Arcoíris", artId: "sticker-mixto", levelId: "mixto" },
-  { id: "stk-palabras", title: "Estrella de palabras", artId: "sticker-palabras", levelId: "palabras" },
-  { id: "stk-digrafos", title: "Cohete", artId: "sticker-digrafos", levelId: "digrafos" },
-  { id: "stk-cerradas", title: "Corona", artId: "sticker-cerradas", levelId: "cerradas" },
+  // One sticker per iteration-6 word band (D3), in map order, plus a milestone.
+  // 2-syllable bands
+  { id: "stk-pal-2-1", title: "Sol", artId: "sticker-s", levelId: "pal-2-abiertas-1" },
+  { id: "stk-pal-2-2", title: "León", artId: "sticker-l", levelId: "pal-2-abiertas-2" },
+  { id: "stk-pal-2-3", title: "Mono", artId: "sticker-m", levelId: "pal-2-abiertas-3" },
+  { id: "stk-pal-2-esp", title: "Cohete", artId: "sticker-digrafos", levelId: "pal-2-especiales" },
+  // 3-syllable bands (now split into two open bands + especiales)
+  { id: "stk-pal-3-1", title: "Estrella de palabras", artId: "sticker-palabras", levelId: "pal-3-abiertas-1" },
+  { id: "stk-pal-3-2", title: "Tortuga viajera", artId: "sticker-t", levelId: "pal-3-abiertas-2" },
+  { id: "stk-pal-3-esp", title: "Trofeo de palabras largas", artId: "sticker-palabras-3", levelId: "pal-3-especiales" },
+  // 4-syllable bands (the big finale)
+  { id: "stk-pal-4-abi", title: "Arcoíris gigante", artId: "sticker-mixto", levelId: "pal-4-abiertas" },
+  { id: "stk-pal-4-esp", title: "Corona de campeón", artId: "sticker-cerradas", levelId: "pal-4-especiales" },
   { id: "stk-milestone", title: "Medalla de oro", artId: "sticker-milestone", levelId: null },
 ];
 

@@ -4,7 +4,6 @@
 // Delegates persistence + mastery to progress.js, level rules to levels.js,
 // rewards to rewards.js, speech leniency to speech.js, audio to audio.js.
 
-import * as syllables from "./syllables.js";
 import * as speech from "./speech.js";
 import * as celebrate from "./celebrate.js";
 import * as progress from "./progress.js";
@@ -14,6 +13,24 @@ import * as words from "./words.js";
 import * as audio from "./audio.js";
 
 const ADVANCE_DELAY_MS = 1200;
+
+/**
+ * Pick a random pool member, never equal to `exclude` (prevents immediate
+ * repeats). Tiny inline selector so game.js no longer depends on syllables.js
+ * (iteration 5, D1). Pure aside from Math.random.
+ * @param {string[]} pool
+ * @param {string|null} [exclude]
+ * @returns {string}
+ */
+function pickRandom(pool, exclude = null) {
+  if (!Array.isArray(pool) || pool.length === 0) {
+    throw new Error("pickRandom: pool must be a non-empty array");
+  }
+  if (pool.length === 1) return pool[0];
+  const candidates = exclude == null ? pool : pool.filter((s) => s !== exclude);
+  const list = candidates.length > 0 ? candidates : pool;
+  return list[Math.floor(Math.random() * list.length)];
+}
 
 /**
  * Create a game instance wired to UI callbacks.
@@ -27,6 +44,23 @@ export function createGame(handlers) {
   const p = progress.load();
   progress.ensureDailyGoal(p);
   progress.save(p);
+
+  // Kick off the CSV word-inventory load (AC-G4.1). Until it resolves the
+  // embedded fallback is used (AC-G4.4); when it resolves we re-render so a
+  // word level already on screen picks up the full, ordered inventory.
+  words
+    .loadInventory()
+    .then(() => {
+      // Every level is a word level now (D1); refresh an on-screen pool so it
+      // picks up the full, ordered CSV inventory when it resolves.
+      if (state.phase === "play" && currentLevelDef()) {
+        state.pool = currentLevelDef().pool();
+        render();
+      }
+    })
+    .catch(() => {
+      /* fallback inventory already in effect; never dead-end (AC-G4.4) */
+    });
 
   const state = {
     progress: p,
@@ -116,7 +150,7 @@ export function createGame(handlers) {
     if (state.phase !== "onboarding") return;
     state.onboardingStep += 1;
     if (state.onboardingStep === 1) {
-      audio.model("Pa");
+      audio.model("pato");
     }
     if (state.onboardingStep > 3) {
       finishOnboarding();
@@ -156,44 +190,31 @@ export function createGame(handlers) {
       state.progress.levels[levelId] = { unlocked: true, completed: false, bestStars: 0 };
     }
     save();
+    // nextItem() presents the first word and auto-reads it (D4), setting the
+    // mascot to "model". No standing prompt is pushed (D6).
     nextItem();
-    handlers.onFeedback(itemPrompt(), "neutral");
-    handlers.onMascot("idle");
   }
 
   function currentLevelDef() {
     return state.levelId ? levels.byId(state.levelId) : null;
   }
 
-  function isWordLevel() {
-    const def = currentLevelDef();
-    return def && def.type === "word";
-  }
-
-  function itemPrompt() {
-    return isWordLevel() ? "Di la palabra 😊" : "Di la sílaba que ves 😊";
-  }
-
   function nextItem() {
     clearTimeout(advanceTimer);
-    const next = syllables.pickRandom(state.pool, state.current || null);
+    const next = pickRandom(state.pool, state.current || null);
     state.previous = state.current;
     state.current = next;
-    if (isWordLevel()) {
-      state.currentWord = words.byWord(next);
-    } else {
-      state.currentWord = null;
-    }
+    state.currentWord = words.byWord(next);
     // record it was seen
     progress.recordSeen(state.progress, next);
-    // early auto-model for the first few new items (F1.3)
-    if (state.progress.autoModelRemaining > 0) {
-      state.progress.autoModelRemaining -= 1;
-      handlers.onMascot("model");
-      audio.model(next);
-    }
     save();
     render();
+    // Auto-read on display (iteration 6, D4 / AC-J4): every new word is modeled
+    // aloud as soon as it appears — no tap, no throttle. speech.speak (via
+    // audio.model) resolves safely and cancels any in-flight utterance, so this
+    // never blocks, throws, or dead-ends (AC-J4.3). One read per new word.
+    handlers.onMascot("model");
+    audio.model(state.current);
   }
 
   // ---- Speech / answering ---------------------------------------------------
@@ -271,9 +292,9 @@ export function createGame(handlers) {
       if (done) {
         completeLevel();
       } else {
+        // nextItem() auto-reads the new word and sets the mascot to "model"
+        // (D4). No standing "Di la palabra" prompt anymore (D6 / AC-J6).
         nextItem();
-        handlers.onMascot("idle");
-        handlers.onFeedback(itemPrompt(), "neutral");
       }
     }, ADVANCE_DELAY_MS);
   }
@@ -319,6 +340,29 @@ export function createGame(handlers) {
     audio.model(state.current);
   }
 
+  // ---- Gesture intents (G3) -------------------------------------------------
+  // Thin, named wrappers so the gesture recognizer in main.js expresses intent
+  // ("tapCard", "swipeNext") rather than reaching into internals. Both no-op
+  // outside the play phase so a stray gesture never misfires.
+
+  /** Tap on the card → read the current item aloud + mascot "model" (AC-G3.1). */
+  function tapCard() {
+    if (state.phase !== "play") return;
+    listenToModel();
+  }
+
+  /** Left swipe on the card → advance to the next item (AC-G3.2). */
+  function swipeNext() {
+    if (state.phase !== "play") return;
+    skip();
+  }
+
+  /** Right swipe → repeat the current item (non-destructive, AC-G3.2). */
+  function swipePrev() {
+    if (state.phase !== "play") return;
+    listenToModel();
+  }
+
   /** Model a single part of the current word (word levels only). */
   function modelPart(index) {
     if (!state.currentWord) return;
@@ -354,15 +398,22 @@ export function createGame(handlers) {
 
   function skip() {
     if (state.phase !== "play") return;
+    // nextItem() handles the auto-read + mascot "model" state (D4). No standing
+    // instruction is pushed to the feedback line (D6 / AC-J6.2).
     nextItem();
-    handlers.onFeedback(itemPrompt(), "neutral");
   }
 
   // ---- Dashboard stats (computed from the mastery model) --------------------
 
   function dashboardStats() {
-    const allIds = syllables.generate("all");
-    const { mastered, total } = progress.masteredCount(state.progress, allIds);
+    // Words-only mastery denominator (D1): the set of inventory WORDS, not the
+    // retired syllable pools. "dominadas" now counts words.
+    const wordIds = [
+      ...words.forLevel("palabras").map((w) => w.word),
+      ...words.forLevel("palabras-3").map((w) => w.word),
+      ...words.forLevel("palabras-4").map((w) => w.word),
+    ];
+    const { mastered, total } = progress.masteredCount(state.progress, wordIds);
     return {
       mastered,
       total,
@@ -374,6 +425,7 @@ export function createGame(handlers) {
       difficulty: state.progress.difficulty,
       veryYoung: state.progress.veryYoung,
       dailyGoal: state.progress.dailyGoal,
+      noSpanishVoice: speech.noSpanishVoiceDetected(),
     };
   }
 
@@ -393,6 +445,9 @@ export function createGame(handlers) {
     listenToModel,
     modelPart,
     skip,
+    tapCard,
+    swipeNext,
+    swipePrev,
     setDifficulty,
     setVeryYoung,
     resetProgress,

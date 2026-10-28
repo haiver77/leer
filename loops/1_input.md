@@ -1,2 +1,1 @@
-Create a single web page application using generic javascript, css and html that be an application to 
 Crea un single web page application que use javascript genérico, css y html, que sirva para aprender a leer, el publico objetivo es niños que están aprendiendo el espanól y aprendiendo a leer, por lo que el objetivo es que visualicen silabas como por ejemplo "Pa", "Se", "Te", etc, y el niño tiene que repetir la silaba adecuadamente, si así lo hace, entonces hay unos efectos claros de celebración y éxito y el sistema sigue con la siguiente silaba generada aleatoriamente.

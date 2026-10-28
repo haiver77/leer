@@ -1,100 +1,110 @@
 // levels.js — level / world-map node definitions + state derivation.
 // Pure + testable: no DOM, no storage. Consumes a progress state object
 // (see progress.js) and returns map state.
+//
+// Iteration 5 (D1): the map is WORDS-ONLY. There is no standalone-syllable
+// level, item, pool, or answer path. Levels are grouped by consonant/sound
+// family within a syllable-length band, ordered easiest-first, and every pool
+// is derived at runtime from the CSV word inventory via words.forBand(), so the
+// pedagogical order lives in one place (words.js helpers), not two.
 
-import { cvPool, EXTRA_POOLS } from "./syllables.js";
-import { forLevel as wordsForLevel } from "./words.js";
+import { forBand } from "./words.js";
 
 /**
- * Ordered level definitions. The staged path:
- *   per-consonant islands → mixed syllables → two-syllable words →
- *   closed syllables & digraphs.
+ * Ordered word-band definitions (AC-I1). Each band selects its words by
+ * filtering the CSV inventory with the pure helpers in words.js (tier via
+ * hardestConsonantTier, digraph/closed via hasDigraph/hasClosedSyllable). The
+ * order is: all 2-syllable bands (open tiers 1→3 then especiales) before the
+ * 3-syllable bands (open then especiales) — easiest-first (AC-I1.3/I1.7).
  *
- * Each node:
- *   id      stable id (used as localStorage key + unlock key)
- *   title   Spanish label (hidden in very-young mode; art carries meaning)
- *   type    "syllable" | "word"
- *   mode    "cv" | "mixed" | "word" | pool id ("ch","ll",...)
- *   artId   art.js id for the island/node illustration
- *   goal    correct answers needed to complete the node
- *   pool()  returns the item pool for this node
+ * `band` is the pure spec passed to words.forBand(); `pool()` maps the selected
+ * items to their `.word` strings at call-time so a late CSV load is picked up.
  */
-const CONSONANT_ISLANDS = [
-  { c: "p", title: "Isla de la P", artId: "island-p" },
-  { c: "m", title: "Isla de la M", artId: "island-m" },
-  { c: "s", title: "Isla de la S", artId: "island-s" },
-  { c: "t", title: "Isla de la T", artId: "island-t" },
-  { c: "l", title: "Isla de la L", artId: "island-l" },
-  { c: "d", title: "Isla de la D", artId: "island-d" },
+const WORD_BANDS = [
+  // ---- 2-syllable bands (easiest first) ----
+  {
+    id: "pal-2-abiertas-1",
+    title: "¡Primeros pasos!",
+    artId: "island-words-2-1",
+    band: { count: 2, tiers: [1], special: false },
+  },
+  {
+    id: "pal-2-abiertas-2",
+    title: "¡A rodar!",
+    artId: "island-words-2-2",
+    band: { count: 2, tiers: [2], special: false },
+  },
+  {
+    id: "pal-2-abiertas-3",
+    title: "¡Más aventuras!",
+    artId: "island-words-2-3",
+    band: { count: 2, tiers: [3], special: false },
+  },
+  {
+    id: "pal-2-especiales",
+    title: "¡Sonidos mágicos!",
+    artId: "island-words-2-esp",
+    band: { count: 2, special: true },
+  },
+  // ---- 3-syllable bands (split open into tiers 1–2 then tier 3) ----
+  {
+    id: "pal-3-abiertas-1",
+    title: "¡La jungla de sílabas!",
+    artId: "island-words-3-1",
+    band: { count: 3, tiers: [1, 2], special: false },
+  },
+  {
+    id: "pal-3-abiertas-2",
+    title: "¡Palabras cohete!",
+    artId: "island-words-3-2",
+    band: { count: 3, tiers: [3], special: false },
+  },
+  {
+    id: "pal-3-especiales",
+    title: "¡Tesoros escondidos!",
+    artId: "island-words-3-esp",
+    band: { count: 3, special: true },
+  },
+  // ---- 4-syllable bands (the big finale) ----
+  {
+    id: "pal-4-abiertas",
+    title: "¡A despegar!",
+    artId: "island-words-4-abi",
+    band: { count: 4, special: false },
+  },
+  {
+    id: "pal-4-especiales",
+    title: "¡Campeones de 4 sílabas!",
+    artId: "island-words-4-esp",
+    band: { count: 4, special: true },
+  },
 ];
 
-/** Build the ordered array of level definitions. */
+/**
+ * Build the ordered array of level definitions. Every level is a word level
+ * (type "word", mode "word"). A band whose current pool is empty is SKIPPED so
+ * the unlock chain never breaks (should not happen with the shipped inventory
+ * or embedded fallback, but keeps continuity if a band ever thins out).
+ */
 function buildLevels() {
   const levels = [];
-
-  // 1) Per-consonant islands (CV for one consonant).
-  for (const isl of CONSONANT_ISLANDS) {
+  for (const b of WORD_BANDS) {
+    // Snapshot the pool at build time only to decide emptiness; pool() below
+    // re-derives at call-time so a later CSV load is reflected.
+    const initial = forBand(b.band);
+    if (!initial.length) continue; // skip an empty band → chain stays intact
+    const spec = b.band;
+    const poolSize = initial.length;
     levels.push({
-      id: `isla-${isl.c}`,
-      title: isl.title,
-      type: "syllable",
-      mode: "cv",
-      consonant: isl.c,
-      artId: isl.artId,
-      goal: 5,
-      pool: () => cvPool(isl.c),
+      id: b.id,
+      title: b.title,
+      type: "word",
+      mode: "word",
+      artId: b.artId,
+      goal: Math.min(5, poolSize),
+      pool: () => forBand(spec).map((w) => w.word),
     });
   }
-
-  // 2) Mixed syllables (all introduced consonants together).
-  levels.push({
-    id: "mixto",
-    title: "Mezcla de sílabas",
-    type: "syllable",
-    mode: "mixed",
-    artId: "island-mixed",
-    goal: 8,
-    pool: () => CONSONANT_ISLANDS.flatMap((i) => cvPool(i.c)),
-  });
-
-  // 3) Two-syllable words.
-  levels.push({
-    id: "palabras",
-    title: "Palabras",
-    type: "word",
-    mode: "word",
-    artId: "island-words",
-    goal: 5,
-    pool: () => wordsForLevel("palabras").map((w) => w.word),
-  });
-
-  // 4) Digraphs.
-  levels.push({
-    id: "digrafos",
-    title: "Sonidos especiales",
-    type: "syllable",
-    mode: "digraphs",
-    artId: "island-digraphs",
-    goal: 6,
-    pool: () => [
-      ...EXTRA_POOLS.ch,
-      ...EXTRA_POOLS.ll,
-      ...EXTRA_POOLS.rr,
-      ...EXTRA_POOLS.enye,
-    ],
-  });
-
-  // 5) Closed syllables + the silent-u digraphs.
-  levels.push({
-    id: "cerradas",
-    title: "Sílabas cerradas",
-    type: "syllable",
-    mode: "closed",
-    artId: "island-closed",
-    goal: 5,
-    pool: () => [...EXTRA_POOLS.closed, ...EXTRA_POOLS.qu, ...EXTRA_POOLS.gu],
-  });
-
   return levels;
 }
 

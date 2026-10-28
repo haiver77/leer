@@ -8,63 +8,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { generate, pickRandom, cvPool, EXTRA_POOLS, extraPoolIds } from "./syllables.js";
+import { pickRandom, titleCase } from "./syllables.js";
 import { normalize, classify } from "./speech.js";
 
 // ---------------------------------------------------------------------------
-// syllables — carried forward + new pools
+// syllables — SUPERSEDED in iteration 5 (D1). The CV matrix / EXTRA_POOLS /
+// generate() practice pools are gone; the module is trimmed to pickRandom +
+// titleCase, so only those remain under test here.
 // ---------------------------------------------------------------------------
 
-test("generate('facil') produces 5 consonants x 5 vowels = 25 CV syllables", () => {
-  const pool = generate("facil");
-  assert.equal(pool.length, 25);
-  for (const s of pool) assert.match(s, /^[A-Z][a-z]$/);
-  assert.ok(pool.includes("Pa"));
-  assert.ok(pool.includes("Se"));
-  assert.ok(pool.includes("Tu"));
-});
-
-test("generate('normal') produces 11 consonants x 5 vowels = 55 syllables", () => {
-  const pool = generate("normal");
-  assert.equal(pool.length, 55);
-  assert.ok(pool.includes("Da"));
-  assert.ok(pool.includes("Ri"));
-  assert.ok(pool.includes("Cu"));
-  for (const s of generate("facil")) assert.ok(pool.includes(s), `normal should include ${s}`);
-});
-
-test("generate defaults to 'facil' for unknown difficulty", () => {
-  assert.equal(generate("whatever").length, 25);
-});
-
-test("cvPool builds 5 title-cased CV syllables for a consonant", () => {
-  assert.deepEqual(cvPool("p"), ["Pa", "Pe", "Pi", "Po", "Pu"]);
-  assert.deepEqual(cvPool("d"), ["Da", "De", "Di", "Do", "Du"]);
-});
-
-test("extra pools: digraphs & closed syllables exist and are title-cased", () => {
-  assert.ok(EXTRA_POOLS.ch.includes("Cha"));
-  assert.ok(EXTRA_POOLS.ll.includes("Lle"));
-  assert.ok(EXTRA_POOLS.rr.includes("Rro"));
-  assert.ok(EXTRA_POOLS.enye.includes("Ña"));
-  assert.ok(EXTRA_POOLS.qu.includes("Que") && EXTRA_POOLS.qu.includes("Qui"));
-  assert.ok(EXTRA_POOLS.gu.includes("Gue") && EXTRA_POOLS.gu.includes("Gui"));
-  assert.ok(EXTRA_POOLS.closed.includes("Pan"));
-  for (const id of extraPoolIds()) {
-    for (const s of EXTRA_POOLS[id]) assert.match(s, /^[A-ZÑ]/);
-  }
-});
-
-test("generate(poolId) returns the named extra pool; 'all' includes extras", () => {
-  assert.deepEqual(generate("ch"), EXTRA_POOLS.ch);
-  const all = generate("all");
-  assert.ok(all.length > generate("normal").length);
-  assert.ok(all.includes("Cha"));
-  assert.ok(all.includes("Pan"));
+test("titleCase capitalizes the first letter, lowercases the rest", () => {
+  assert.equal(titleCase("pa"), "Pa");
+  assert.equal(titleCase("MESA"), "Mesa");
+  assert.equal(titleCase(""), "");
 });
 
 test("pickRandom always returns a pool member and never the exclude", () => {
-  const pool = generate("normal");
+  const pool = ["pato", "mesa", "lupa", "gato", "casa", "rana", "sopa"];
   let cur = pool[0];
   for (let i = 0; i < 1000; i++) {
     const next = pickRandom(pool, cur);
@@ -72,7 +32,7 @@ test("pickRandom always returns a pool member and never the exclude", () => {
     assert.notEqual(next, cur);
     cur = next;
   }
-  assert.equal(pickRandom(["Pa"], "Pa"), "Pa");
+  assert.equal(pickRandom(["pato"], "pato"), "pato");
   assert.throws(() => pickRandom([]));
 });
 
