@@ -67,12 +67,15 @@ body {
 }
 
 .app {
+  /* Expose the padding as a custom property so the play screen can size itself
+     to the exact remaining viewport (see .screen.game). */
+  --app-pad: clamp(12px, 3vw, 28px);
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(12px, 3vw, 28px);
+  padding: var(--app-pad);
 }
 
 .screen {
@@ -420,12 +423,19 @@ body {
 /* ---------- Game screen (immersive: card = hero) ---------- */
 /* The play screen is a full-height column: a compact top bar, a flexible
    hero region (the card) that eats all spare space, and a compact bottom
-   action cluster. (G1/G2) */
+   action cluster. (G1/G2).
+
+   It is sized to EXACTLY the available viewport (height, not min-height) so the
+   whole flow — top bar, hero card, feedback, and the mic — always fits on one
+   screen with nothing pushed past the fold. The `--app-pad` custom property
+   carries .app's padding so the screen can subtract it from the viewport. */
 .screen.game {
-  min-height: 100dvh;
+  height: calc(100dvh - 2 * var(--app-pad, 0px));
+  max-height: calc(100dvh - 2 * var(--app-pad, 0px));
   justify-content: flex-start;
-  gap: clamp(8px, 1.6vh, 16px);
-  padding: clamp(6px, 1.4vh, 14px) 0;
+  gap: clamp(6px, 1.2vh, 12px);
+  padding: 0;
+  overflow: hidden;
 }
 .game-top {
   width: 100%;
@@ -511,14 +521,18 @@ body {
    overflow (G1.2). */
 .word-view {
   position: relative;
+  /* Grow to fill the card host but stay bounded so very tall viewports don't
+     leave the word stranded in a sea of empty card. The content stays centered
+     and the internal gaps are modest so there are no big empty bands. */
   flex: 1 1 auto;
   width: 100%;
   max-width: 96vw;
+  max-height: clamp(260px, 56vh, 520px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(10px, 2.4vh, 24px);
+  gap: clamp(8px, 1.8vh, 18px);
   /* Hero-card depth (AC-I4.2): a soft inner gradient over a themed tint, a
      rounded accent border tinted by the current family, and layered shadows
      (one ambient + one tight) + an inner highlight for real depth. */
@@ -1377,6 +1391,7 @@ body.very-young .dashboard .feedback {
   .word-view {
     gap: clamp(6px, 1.4vh, 14px);
     padding: clamp(10px, 2.4vw, 24px);
+    max-height: 72vh;
   }
   .word-whole {
     font-size: clamp(1.8rem, 8vh, 4rem);
