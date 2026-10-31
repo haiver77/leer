@@ -41,7 +41,7 @@ All paths are relative to the current workspace root.
 
 - Every markdown artifact lives in `loops/`. Never write these artifacts to the
   workspace root.
-- All generated application code lives in `app/` and evolves in place across
+- All generated application code lives in `/` and evolves in place across
   iterations (do not create per-iteration code folders).
 
 ## File Naming Rules
@@ -69,7 +69,7 @@ prefix** present for the relevant artifact type. Examples:
 - Developer reads the latest `N_specification.md` and writes `N_plan.md` with
   the **same** `N`.
 - Customer Review reads the latest `N_specification.md`, `N_plan.md`, and the
-  current `app/`, then either writes `FINAL_REVIEW.md` or `(N+1)_input.md`.
+  current `/`, then either writes `FINAL_REVIEW.md` or `(N+1)_input.md`.
 
 Never guess the number — always derive it from the files that actually exist in
 `loops/`.

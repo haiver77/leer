@@ -18,7 +18,7 @@ import { createGame } from "./game.js";
 
 /** Build a game with recording handlers. */
 function makeGame() {
-  const events = { mascot: [], feedback: [], renders: 0, pops: 0 };
+  const events = { mascot: [], feedback: [], renders: 0, pops: 0, reactions: [] };
   const game = createGame({
     onRender: () => {
       events.renders += 1;
@@ -31,6 +31,9 @@ function makeGame() {
     },
     onSuccessPop: () => {
       events.pops += 1;
+    },
+    onReaction: (kind) => {
+      events.reactions.push(kind);
     },
   });
   return { game, events };
@@ -188,4 +191,130 @@ test("AC-K6.3: the 10th correct answer completes the level with no stray read", 
   } finally {
     mock.timers.reset();
   }
+});
+
+// ===========================================================================
+// Iteration 9 — reactions (D2), mode variety (D3), music (D8), customization (D1)
+// ===========================================================================
+
+test("AC-M2.3: presenting a new word requests exactly one surprise reaction", () => {
+  const { game, events } = makeGame();
+  const firstLevel = game.view().map[0].id;
+
+  game.openLevel(firstLevel);
+  assert.equal(
+    events.reactions.filter((r) => r === "surprise").length,
+    1,
+    "one surprise on the first word"
+  );
+  // ...and no extra reads/listens were added by the reaction (AC-L2 unchanged):
+  // the first word still auto-reads exactly once.
+  assert.equal(modelCount(events), 1, "still exactly one model (auto-read) for the first word");
+
+  game.skip(); // next word
+  assert.equal(
+    events.reactions.filter((r) => r === "surprise").length,
+    2,
+    "a second surprise on the next word"
+  );
+});
+
+test("AC-M3.1/M3.2: the per-word mode rotation starts on say-it then alternates", () => {
+  const { game } = makeGame();
+  const firstLevel = game.view().map[0].id;
+
+  game.openLevel(firstLevel);
+  assert.equal(game.view().activeMode, "say-it", "first word is say-it");
+  assert.equal(game.view().modeOptions, null, "say-it exposes no options");
+
+  game.skip();
+  assert.equal(game.view().activeMode, "pick-word", "second word is pick-word");
+  const opts = game.view().modeOptions;
+  assert.equal(opts.kind, "pick-word");
+  assert.ok(opts.options.includes(game.state.current), "the correct word is among the options");
+
+  game.skip();
+  assert.equal(game.view().activeMode, "missing-syllable", "third word is missing-syllable");
+  assert.ok(game.view().modeOptions.options.includes(game.view().modeOptions.correct));
+});
+
+test("AC-M3.6: very-young mode keeps every word on the picture-based say-it", () => {
+  const { game } = makeGame();
+  game.setVeryYoung(true);
+  const firstLevel = game.view().map[0].id;
+
+  game.openLevel(firstLevel);
+  for (let i = 0; i < 4; i++) {
+    assert.equal(game.view().activeMode, "say-it", `word ${i} stays say-it in very-young`);
+    assert.equal(game.view().modeOptions, null);
+    game.skip();
+  }
+});
+
+test("AC-M3.3/M3.4: a correct tap-mode option completes a word via the micro-loop", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game } = makeGame();
+    const firstLevel = game.view().map[0].id;
+
+    game.openLevel(firstLevel);
+    game.skip(); // advance to index 1 → pick-word
+    assert.equal(game.view().activeMode, "pick-word");
+
+    const before = game.state.levelCorrect;
+    game.answerOption(game.state.current); // tap the correct word
+    assert.equal(game.state.levelCorrect, before + 1, "a correct tap scored one");
+    // tap success is NOT mic-verified (mastery semantics unchanged, AC-M3.4)
+    assert.equal(game.state.lastVerified, false, "tap success is verified:false");
+
+    // the micro-loop advances to the next word after the delay
+    mock.timers.tick(1200);
+    assert.equal(game.state.phase, "play", "advanced to the next word, still playing");
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("AC-M3.5: a wrong tap encourages + lets the child retry, never dead-ends", () => {
+  const { game, events } = makeGame();
+  const firstLevel = game.view().map[0].id;
+
+  game.openLevel(firstLevel);
+  game.skip(); // pick-word
+  const before = game.state.levelCorrect;
+
+  // tap a definitely-wrong value
+  game.answerOption("___definitely-not-a-word___");
+  assert.equal(game.state.levelCorrect, before, "a wrong tap does not score");
+  assert.equal(game.state.phase, "play", "no dead-end — still playing the same word");
+  const text = events.feedback.map((f) => f.msg).join(" | ");
+  assert.ok(/intenta otra vez|casi/i.test(text), "an encouraging retry message was shown");
+});
+
+test("AC-M8.1: setMusicEnabled coerces, persists, and is reflected", () => {
+  const { game } = makeGame();
+  assert.equal(game.view().music, false, "music is OFF by default");
+  game.setMusicEnabled(true);
+  assert.equal(game.view().music, true, "music turned on");
+  assert.equal(game.dashboardStats().music, true, "dashboard reflects music on");
+  game.setMusicEnabled(0); // coerced to false
+  assert.equal(game.view().music, false, "music turned off (coerced)");
+});
+
+test("AC-M1.5: setLaloCustomization sanitizes locked items + persists the clean selection", () => {
+  const { game } = makeGame();
+  // try to equip a locked color (grape needs 25 stars) at first run
+  game.setLaloCustomization({ color: "grape", accessories: ["glasses"] });
+  const sel = game.view().lalo;
+  assert.notEqual(sel.color, "grape", "locked color was dropped");
+  assert.ok(!sel.accessories.includes("glasses"), "locked accessory dropped");
+  assert.equal(typeof sel.color, "string");
+});
+
+test("gardenState exposes an ordered, flagged garden for the current progress", () => {
+  const { game } = makeGame();
+  const g = game.gardenState();
+  assert.ok(Array.isArray(g) && g.length > 0);
+  assert.equal(typeof g[0].unlocked, "boolean");
+  assert.equal(typeof g[0].artId, "string");
 });

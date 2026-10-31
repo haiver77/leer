@@ -142,6 +142,72 @@ body {
   d: path("M48 76 q12 12 24 0");
 }
 
+/* ---------- Lalo "alive" behaviors (iteration 9, D2 / AC-M2) ----------
+   All CSS-driven; reduced-motion swaps them for static expressive poses. */
+
+/* (a) random-ish blink while at rest: eyelids sweep down + up on a loop. */
+.lalo-lid {
+  transform-box: fill-box;
+  transform-origin: center top;
+}
+.lalo-state-idle .lalo-lid {
+  animation: lalo-blink 4.6s ease-in-out infinite;
+}
+@keyframes lalo-blink {
+  0%, 92%, 100% { height: 0; }
+  95% { height: 9px; }
+}
+
+/* (b) surprise / curiosity on a new word: a quick pop + raised antennae. */
+.lalo-surprise .lalo-body {
+  animation: lalo-surprise 0.9s ease-in-out;
+}
+.lalo-surprise .lalo-eyes {
+  animation: lalo-eyes-wide 0.9s ease-in-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes lalo-surprise {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-6px) scale(1.06); }
+  60% { transform: translateY(0) scale(0.99); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes lalo-eyes-wide {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.22); }
+}
+
+/* (c) sleeping / "esperando": a gentle slow breathe + visible Zzz. The Zzz is
+   hidden by default and only shown in the sleeping pose. */
+.lalo-zzz {
+  opacity: 0;
+  font-weight: 800;
+}
+.lalo-sleeping .lalo-zzz {
+  opacity: 1;
+  animation: lalo-zzz 2.4s ease-in-out infinite;
+}
+.lalo-sleeping .lalo-body {
+  animation: lalo-doze 3.6s ease-in-out infinite;
+}
+.lalo-sleeping .lalo-lid {
+  height: 9px !important; /* eyes closed while asleep */
+  animation: none !important;
+}
+.lalo-sleeping .lalo-mouth {
+  d: path("M52 80 q8 2 16 0");
+}
+@keyframes lalo-doze {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(2px) rotate(1deg); }
+}
+@keyframes lalo-zzz {
+  0% { opacity: 0; transform: translate(0, 4px); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translate(6px, -8px); }
+}
+
 /* ---------- Welcome ---------- */
 .welcome {
   text-align: center;
@@ -1254,13 +1320,24 @@ body.very-young .dashboard .feedback {
   .map-node {
     transition: none;
   }
-  /* mascot: swap motion for a static expressive pose (F10.3) */
+  /* mascot: swap motion for a static expressive pose (F10.3 + iteration 9 D2:
+     blink, surprise, and sleeping all become calm static frames). */
+  .lalo-state-idle .lalo-lid,
+  .lalo-surprise .lalo-body,
+  .lalo-surprise .lalo-eyes,
+  .lalo-sleeping .lalo-zzz,
+  .lalo-sleeping .lalo-body,
+  .game-ambient .ambient-shape,
   .lalo-state-idle .lalo-body,
   .lalo-state-cheer .lalo-body,
   .lalo-state-cheer .lalo-arm,
   .lalo-state-encourage .lalo-body,
   .lalo-state-model .lalo-mouth {
     animation: none !important;
+  }
+  /* Keep the sleeping cue legible as a STATIC pose (Zzz visible, eyes closed). */
+  .lalo-sleeping .lalo-zzz {
+    opacity: 1 !important;
   }
   * {
     scroll-behavior: auto !important;
@@ -1395,3 +1472,230 @@ body.very-young .dashboard .feedback {
     border-color: Highlight;
   }
 }
+
+/* ===========================================================================
+   Iteration 9 — appeal & long-term interest
+   =========================================================================== */
+
+/* ---------- Themed per-family game backgrounds (D5 / AC-M5) ----------
+   The play screen's single gradient is replaced by a per-band themed scene.
+   A scrim behind the hero card keeps word/tile/feedback text at >= 4.5:1. */
+#game-screen {
+  position: relative;
+  transition: background 0.5s ease;
+}
+#game-screen[data-theme="meadow"] { background: linear-gradient(180deg, #bdeffd 0%, #d7f6c6 70%, #aee47f 100%); }
+#game-screen[data-theme="sky"]    { background: linear-gradient(180deg, #a9e4ff 0%, #d7f1ff 100%); }
+#game-screen[data-theme="forest"] { background: linear-gradient(180deg, #cdebc2 0%, #8fcf7a 100%); }
+#game-screen[data-theme="sunset"] { background: linear-gradient(180deg, #ffd9a8 0%, #ffb0a0 100%); }
+#game-screen[data-theme="jungle"] { background: linear-gradient(180deg, #bfe8b0 0%, #6fb98a 100%); }
+#game-screen[data-theme="desert"] { background: linear-gradient(180deg, #ffe9b8 0%, #f3c98a 100%); }
+#game-screen[data-theme="twilight"]{ background: linear-gradient(180deg, #c9bcf0 0%, #9b8ad8 100%); }
+#game-screen[data-theme="sea"]    { background: linear-gradient(180deg, #a4e4f0 0%, #5fc0dd 100%); }
+#game-screen[data-theme="space"]  { background: linear-gradient(180deg, #8f9bdb 0%, #5b5fa8 100%); }
+
+/* Ambient drifting shapes (AC-M5.3): decorative, never capture pointer events,
+   disabled under prefers-reduced-motion (see the global block above). */
+.game-ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.game-ambient .ambient-shape {
+  position: absolute;
+  display: block;
+  width: clamp(40px, 12vw, 90px);
+  height: clamp(40px, 12vw, 90px);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  filter: blur(1px);
+}
+.ambient-1 { top: 12%; left: -12%; animation: ambient-drift 26s linear infinite; }
+.ambient-2 { top: 30%; left: -20%; width: 60px; height: 60px; animation: ambient-drift 34s linear infinite 4s; }
+.ambient-3 { top: 8%; left: -30%; width: 46px; height: 46px; animation: ambient-drift 42s linear infinite 9s; }
+@keyframes ambient-drift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(130vw); }
+}
+/* Keep the card + controls above the ambient layer. */
+#game-screen > .game-top,
+#game-screen > .card-host,
+#game-screen > .feedback,
+#game-screen > .play-bottom {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Mini-game mode options (D3 / AC-M3) ----------
+   Tap tiles for pick-word / missing-syllable. >=56px targets, >=4.5:1 text. */
+.mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(8px, 2.5vw, 16px);
+  margin-top: clamp(8px, 2vh, 16px);
+  width: 100%;
+}
+.mode-options[hidden] { display: none; }
+.mode-tile {
+  min-height: 56px;
+  min-width: 72px;
+  padding: 12px clamp(14px, 4vw, 24px);
+  border: 3px solid #2f3a66;
+  border-radius: 16px;
+  background: #fff;
+  color: #141a3a;
+  font-size: clamp(1.2rem, 5vw, 1.8rem);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.mode-tile:hover { transform: translateY(-2px); background: #f3f6ff; }
+.mode-tile:active { transform: translateY(0) scale(0.96); }
+.mode-tile-syllable { text-transform: none; }
+
+/* Blank syllable slot in the missing-syllable mode. */
+.word-tile-blank {
+  background: #fff6c2;
+  border: 3px dashed #d2a400;
+  color: #b38600;
+}
+
+/* ---------- Armario de Lalo (D1 / AC-M1) ---------- */
+.wardrobe {
+  text-align: center;
+}
+.wardrobe-preview {
+  margin: 0 auto clamp(8px, 2vh, 16px);
+}
+.wardrobe-group-title {
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+  font-size: clamp(1.1rem, 4vw, 1.4rem);
+  margin: clamp(10px, 2vh, 18px) 0 8px;
+}
+.wardrobe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: clamp(10px, 2.5vw, 16px);
+  width: 100%;
+}
+.wardrobe-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 72px;
+  padding: 8px;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, border-color 0.15s ease;
+}
+.wardrobe-tile:hover { transform: translateY(-2px); }
+.wardrobe-tile:active { transform: translateY(0) scale(0.96); }
+.wardrobe-tile[data-selected="true"] {
+  border-color: var(--success, #06d6a0);
+  box-shadow: 0 0 0 3px rgba(6, 214, 160, 0.4), var(--shadow);
+}
+/* Locked items: non-selectable silhouettes, mirroring the sticker-locked look. */
+.wardrobe-tile[data-locked="true"] {
+  cursor: default;
+  filter: grayscale(1) opacity(0.5);
+}
+.wardrobe-tile[data-locked="true"] .swatch,
+.wardrobe-tile[data-locked="true"] .wardrobe-acc-art {
+  filter: brightness(0) opacity(0.35);
+}
+.wardrobe-color .swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--swatch, #4cc9f0);
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}
+.wardrobe-acc-art {
+  width: 56px;
+  height: 56px;
+  display: block;
+}
+.wardrobe-acc-art svg { width: 100%; height: 100%; }
+.wardrobe-acc-label {
+  font-size: 0.82rem;
+  color: #141a3a;
+  font-weight: 700;
+}
+
+/* ---------- Jardín de Lalo (D4 / AC-M4) ---------- */
+.garden-screen { text-align: center; }
+.garden-summary {
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+  font-weight: 800;
+  margin: 0 0 clamp(8px, 2vh, 16px);
+}
+.garden-canvas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: clamp(8px, 2vw, 14px);
+  width: 100%;
+  background: linear-gradient(180deg, #d7f6ff 0%, #c7efb0 60%, #9fe077 100%);
+  border-radius: var(--radius, 20px);
+  padding: clamp(12px, 3vw, 22px);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.garden-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+}
+.garden-cell .garden-art { width: 100%; height: 100%; }
+.garden-cell .garden-art svg { width: 100%; height: 100%; }
+.garden-cell[data-unlocked="false"] .garden-art {
+  filter: grayscale(1) opacity(0.3);
+}
+
+/* ---------- Map as a sendero / trail (D6 / AC-M6) ----------
+   Re-presents the existing nodes as a vertical zig-zag path. Node state markup,
+   family colors, >=56px targets and keyboard order are unchanged. */
+.map-trail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(16px, 4vh, 30px);
+  position: relative;
+  padding: clamp(8px, 2vh, 16px) 0;
+}
+.map-trail .map-node {
+  width: min(78%, 320px);
+}
+/* alternate left/right so the path reads as a walking trail */
+.map-trail .map-node:nth-child(odd) { align-self: flex-start; margin-left: 6%; }
+.map-trail .map-node:nth-child(even) { align-self: flex-end; margin-right: 6%; }
+/* dotted connector between consecutive nodes */
+.map-trail .map-node::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(-1 * clamp(16px, 4vh, 30px));
+  width: 0;
+  height: clamp(16px, 4vh, 30px);
+  border-left: 4px dotted rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%);
+  z-index: -1;
+}
+.map-trail .map-node:last-child::after { display: none; }
+@media (max-width: 420px) {
+  .map-trail { gap: clamp(14px, 3vh, 22px); }
+  .map-trail .map-node { width: 84%; }
+}
+
+/* ---------- Reduced motion: disable the trail connector shimmer + ambient
+   already handled above; nothing else needed. ---------- */

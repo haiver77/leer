@@ -805,6 +805,25 @@ function starPath(cx, cy, r, fill) {
   return `<polygon points="${pts.trim()}" fill="${fill}"/>`;
 }
 
+// ---- Jardín de Lalo elements (iteration 9, D4 / AC-M4) ----------------------
+// Small decorative inline-SVG scenes that fill the child's garden as they earn
+// stars/stickers/levels. Share the 0 0 100 100 viewBox so they tile cleanly.
+
+const GARDEN_ART = {
+  "garden-sprout": svgEl("Brote", `<path d="M50 78 v-20" stroke="#2d6a4f" stroke-width="4"/><path d="M50 60 q-14 -4 -16 -18 q14 2 16 18 M50 64 q14 -4 16 -18 q-14 2 -16 18" fill="#52b788"/>`),
+  "garden-flower-red": svgEl("Flor roja", `<path d="M50 80 v-24" stroke="#2d6a4f" stroke-width="4"/><g fill="#ef476f"><circle cx="50" cy="40" r="8"/><circle cx="40" cy="48" r="8"/><circle cx="60" cy="48" r="8"/><circle cx="44" cy="34" r="8"/><circle cx="56" cy="34" r="8"/></g><circle cx="50" cy="42" r="6" fill="#ffd166"/>`),
+  "garden-flower-blue": svgEl("Flor azul", `<path d="M50 80 v-24" stroke="#2d6a4f" stroke-width="4"/><g fill="#4cc9f0"><circle cx="50" cy="40" r="8"/><circle cx="40" cy="48" r="8"/><circle cx="60" cy="48" r="8"/><circle cx="44" cy="34" r="8"/><circle cx="56" cy="34" r="8"/></g><circle cx="50" cy="42" r="6" fill="#ffd166"/>`),
+  "garden-tree": svgEl("Árbol", `<rect x="46" y="54" width="8" height="26" fill="#8d5524"/><circle cx="50" cy="42" r="20" fill="#52b788"/><circle cx="36" cy="48" r="12" fill="#52b788"/><circle cx="64" cy="48" r="12" fill="#52b788"/>`),
+  "garden-bush": svgEl("Arbusto", `<circle cx="40" cy="60" r="14" fill="#40916c"/><circle cx="56" cy="58" r="16" fill="#52b788"/><circle cx="62" cy="64" r="10" fill="#40916c"/>`),
+  "garden-star": svgEl("Estrella", starPath(50, 50, 22, "#ffd166")),
+  "garden-butterfly": svgEl("Mariposa", `<line x1="50" y1="40" x2="50" y2="62" stroke="#1d2b53" stroke-width="3"/><g fill="#b892ff"><ellipse cx="40" cy="46" rx="10" ry="8"/><ellipse cx="60" cy="46" rx="10" ry="8"/><ellipse cx="42" cy="58" rx="8" ry="7"/><ellipse cx="58" cy="58" rx="8" ry="7"/></g>`),
+  "garden-mushroom": svgEl("Seta", `<rect x="46" y="54" width="8" height="22" rx="3" fill="#ffe8d6"/><path d="M30 54 a20 14 0 0 1 40 0 z" fill="#ef476f"/><circle cx="42" cy="48" r="3" fill="#fff"/><circle cx="56" cy="50" r="2.5" fill="#fff"/>`),
+  "garden-pond": svgEl("Estanque", `<ellipse cx="50" cy="60" rx="30" ry="16" fill="#4cc9f0"/><ellipse cx="50" cy="56" rx="24" ry="10" fill="#8ad7f5"/><path d="M38 58 q6 -4 12 0 M54 60 q6 -4 12 0" stroke="#fff" stroke-width="2" fill="none"/>`),
+  "garden-rainbow": svgEl("Arcoíris", `<path d="M20 70 a30 30 0 0 1 60 0" fill="none" stroke="#ef476f" stroke-width="5"/><path d="M28 70 a22 22 0 0 1 44 0" fill="none" stroke="#ffd166" stroke-width="5"/><path d="M36 70 a14 14 0 0 1 28 0" fill="none" stroke="#4cc9f0" stroke-width="5"/>`),
+  "garden-sun": svgEl("Sol", `<circle cx="50" cy="50" r="16" fill="#ffd166"/><g stroke="#ffba08" stroke-width="4"><line x1="50" y1="18" x2="50" y2="28"/><line x1="50" y1="72" x2="50" y2="82"/><line x1="18" y1="50" x2="28" y2="50"/><line x1="72" y1="50" x2="82" y2="50"/><line x1="28" y1="28" x2="34" y2="34"/><line x1="66" y1="66" x2="72" y2="72"/><line x1="72" y1="28" x2="66" y2="34"/><line x1="34" y1="66" x2="28" y2="72"/></g>`),
+  "garden-trophy": svgEl("Trofeo dorado", `<path d="M38 32 h24 v10 a12 12 0 0 1 -24 0z" fill="#ffd166"/><path d="M38 36 h-8 a6 6 0 0 0 8 8 M62 36 h8 a6 6 0 0 1 -8 8" stroke="#ffd166" stroke-width="3" fill="none"/><rect x="46" y="52" width="8" height="12" fill="#ffd166"/><rect x="38" y="64" width="24" height="7" rx="2" fill="#e8a900"/>`),
+};
+
 // ---- Icons (de-emphasised secondary controls) -------------------------------
 
 const ICON_ART = {
@@ -819,6 +838,7 @@ const REGISTRY = {
   ...WORD_ART,
   ...ISLAND_ART,
   ...STICKER_ART,
+  ...GARDEN_ART,
   ...ICON_ART,
 };
 

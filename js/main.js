@@ -7,6 +7,8 @@ import * as mascot from "./mascot.js";
 import * as art from "./art.js";
 import * as levels from "./levels.js";
 import * as adultGate from "./adultGate.js";
+import * as customize from "./customize.js";
+import * as speech from "./speech.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -18,6 +20,8 @@ const screens = {
   play: el("game-screen"),
   summary: el("summary-screen"),
   stickers: el("stickers-screen"),
+  wardrobe: el("wardrobe-screen"),
+  garden: el("garden-screen"),
   dashboard: el("dashboard-screen"),
 };
 
@@ -41,7 +45,27 @@ const onbDemo = el("onboarding-demo");
 const mapGrid = el("map-grid");
 const mapStickersBtn = el("map-stickers-btn");
 const mapDashBtn = el("map-dashboard-btn");
+const mapWardrobeBtn = el("map-wardrobe-btn");
+const mapGardenBtn = el("map-garden-btn");
 const dailyFill = el("daily-goal-fill");
+
+// Mode options (D3), themed background (D5)
+const modeOptions = el("mode-options");
+const gameScreen = el("game-screen");
+
+// Armario de Lalo (D1)
+const wardrobeBackBtn = el("wardrobe-back-btn");
+const wardrobePreview = el("wardrobe-preview");
+const wardrobeColors = el("wardrobe-colors");
+const wardrobeAccessories = el("wardrobe-accessories");
+
+// Jardín de Lalo (D4)
+const gardenBackBtn = el("garden-back-btn");
+const gardenCanvas = el("garden-canvas");
+const gardenSummary = el("garden-summary");
+
+// Música de fondo (D8)
+const musicToggle = el("music-toggle");
 
 const itemArt = el("item-art");
 const cardHost = el("card-host");
@@ -52,7 +76,6 @@ const gestureHint = el("gesture-hint");
 const feedback = el("feedback");
 const starsValue = el("stars-value");
 const speakBtn = el("speak-btn");
-const confirmBtn = el("confirm-btn");
 const backBtn = el("back-btn");
 
 const summaryStars = el("summary-stars");
@@ -76,6 +99,7 @@ const diffNormal = el("diff-normal");
 const veryYoungToggle = el("veryyoung-toggle");
 const autoReadToggle = el("autoread-toggle");
 const voiceSelect = el("voice-select");
+const wordsPerLevelSelect = el("words-per-level");
 const resetBtn = el("reset-btn");
 
 // Adult gate overlay
@@ -86,6 +110,10 @@ const gateCancel = el("gate-cancel");
 
 // ---- Mascot: a single logical Lalo; we remount into the active screen host ----
 let activeMascotState = "idle";
+// The customized Lalo selection, kept in sync via the game's onLaloCustomization
+// handler so every mount renders the child's chosen color + accessories (D1 /
+// AC-M1.5).
+let laloSelection = customize.defaultSelection();
 function mountMascotFor(phase) {
   const host =
     phase === "welcome"
@@ -98,7 +126,7 @@ function mountMascotFor(phase) {
       ? el("summary-mascot")
       : null;
   if (host) {
-    mascot.mount(host);
+    mascot.mount(host, laloSelection);
     mascot.setState(activeMascotState);
   }
 }
@@ -114,7 +142,23 @@ const game = createGame({
   // confetti burst + Lalo cheer. CSS-only, reflow-restart like the entrance
   // animation, honored-by prefers-reduced-motion in styles.css.
   onSuccessPop: () => replaySuccessPop(),
+  // Iteration 9 (D2 / AC-M2): Lalo reactions driven by the state machine.
+  onReaction: (kind) => {
+    if (kind === "surprise") mascot.surprise();
+  },
+  onSleep: () => mascot.sleep(),
+  onWake: () => mascot.wake(),
+  // Iteration 9 (D1 / AC-M1.5): keep the shared selection in sync + re-render
+  // the mounted Lalo so the customization shows everywhere immediately.
+  onLaloCustomization: (sel) => {
+    laloSelection = sel;
+    mascot.applyCustomization(sel);
+  },
 });
+
+// Seed the selection from persisted progress so the very first mount already
+// shows the child's customized Lalo (AC-M1.5).
+laloSelection = game.laloSelection();
 
 // Retrigger the success "pop" on the hero card (AC-K5.1). Toggling the class
 // with a forced reflow restarts the CSS keyframe on every correct answer.
@@ -163,6 +207,12 @@ function renderView(view) {
       break;
     case "stickers":
       renderStickers(view);
+      break;
+    case "wardrobe":
+      renderWardrobe(view);
+      break;
+    case "garden":
+      renderGarden(view);
       break;
     case "dashboard":
       renderDashboard();
@@ -234,20 +284,112 @@ function renderPlay(view) {
   // The word view is the only card content now (D1). Mark a fresh word so the
   // CSS entrance animation (AC-I4.2) can replay on each new item.
   if (view.currentWord) {
-    renderWordParts(view.currentWord.parts);
-    const changed = wordWhole.textContent !== view.currentWord.word;
-    wordWhole.textContent = view.currentWord.word;
-    wordWhole.setAttribute("aria-label", `Palabra: ${view.currentWord.word}`);
+    // In the missing-syllable mode, blank one syllable tile + mask the whole
+    // word so the child supplies the piece (D3 / AC-M3.1).
+    const ms = view.modeOptions && view.modeOptions.kind === "missing-syllable"
+      ? view.modeOptions.blankIndex
+      : -1;
+    renderWordParts(view.currentWord.parts, ms);
+    const whole =
+      ms >= 0
+        ? view.currentWord.parts
+            .map((p, i) => (i === ms ? "__" : p.toLowerCase()))
+            .join("-")
+        : view.currentWord.word;
+    const changed = wordWhole.textContent !== whole;
+    wordWhole.textContent = whole;
+    wordWhole.setAttribute(
+      "aria-label",
+      ms >= 0 ? "Completa la sílaba que falta" : `Palabra: ${view.currentWord.word}`
+    );
     // Scale font to the syllable count so 2- and 3-part words both fit (G1.2).
     wordView.dataset.parts = String(view.currentWord.parts.length);
     if (changed) replayNewWordEntrance();
   }
 
-  // Mic vs self-confirm (never dead-end). Mic is primary; confirm is secondary.
-  speakBtn.hidden = !view.recognitionSupported;
+  // Per-family THEMED BACKGROUND (D5 / AC-M5): set a data-theme on the game
+  // screen from the current band. Text stays on a scrim at ≥4.5:1 (CSS).
+  if (gameScreen) gameScreen.dataset.theme = themeForLevel(def && def.id);
+
+  // Mini-game MODE OPTIONS (D3 / AC-M3): render tap tiles for the active mode,
+  // or hide the container for the say-it read-and-say mode.
+  renderModeOptions(view);
+
+  // The mic is the single primary action (iteration 8, D1 / AC-L1): the old
+  // "¡Lo dije!" button is gone. It auto-opens on each word (AC-L2) and stays as
+  // a manual "listen again" trigger. On devices without recognition the mic is
+  // hidden and the child completes a word by tapping the card (AC-L1.3).
+  // In a tap-based mode the mic is hidden (the child answers by tapping).
+  const tapMode = Boolean(view.modeOptions);
+  speakBtn.hidden = tapMode || !view.recognitionSupported;
   speakBtn.classList.toggle("is-listening", view.listening);
   speakBtn.setAttribute("aria-pressed", String(view.listening));
-  confirmBtn.classList.toggle("is-primary", !view.recognitionSupported);
+}
+
+// Per-band theme lookup (D5 / AC-M5.2). Every band maps to a defined theme so
+// the themed background is always set. Falls back to a neutral theme.
+const LEVEL_THEMES = {
+  "pal-2-abiertas-1": "meadow",
+  "pal-2-abiertas-2": "sky",
+  "pal-2-abiertas-3": "forest",
+  "pal-2-especiales": "sunset",
+  "pal-3-abiertas-1": "jungle",
+  "pal-3-abiertas-2": "desert",
+  "pal-3-especiales": "twilight",
+  "pal-4-abiertas": "sea",
+  "pal-4-especiales": "space",
+};
+function themeForLevel(levelId) {
+  if (!levelId) return "meadow";
+  if (LEVEL_THEMES[levelId]) return LEVEL_THEMES[levelId];
+  const prefix = Object.keys(LEVEL_THEMES).find((k) => levelId.startsWith(k));
+  return prefix ? LEVEL_THEMES[prefix] : "meadow";
+}
+
+// Render the tap-mode option tiles (pick-word / missing-syllable). Hidden for
+// say-it. Each tile is a ≥56px button routing to game.answerOption(...).
+function renderModeOptions(view) {
+  if (!modeOptions) return;
+  const mo = view.modeOptions;
+  if (!mo) {
+    modeOptions.hidden = true;
+    modeOptions.innerHTML = "";
+    modeOptions.dataset.kind = "";
+    return;
+  }
+  modeOptions.hidden = false;
+  modeOptions.dataset.kind = mo.kind;
+  modeOptions.innerHTML = "";
+
+  if (mo.kind === "pick-word") {
+    modeOptions.setAttribute("aria-label", "¿Cuál es la palabra?");
+    for (const w of mo.options) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "mode-tile mode-tile-word";
+      btn.textContent = w;
+      btn.setAttribute("aria-label", `Palabra: ${w}`);
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        game.answerOption(w);
+      });
+      modeOptions.appendChild(btn);
+    }
+  } else if (mo.kind === "missing-syllable") {
+    modeOptions.setAttribute("aria-label", "Completa la sílaba que falta");
+    for (const s of mo.options) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "mode-tile mode-tile-syllable";
+      btn.textContent = s;
+      btn.setAttribute("aria-label", `Sílaba: ${s}`);
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        game.answerOption(s);
+      });
+      modeOptions.appendChild(btn);
+    }
+  }
 }
 
 // Retrigger the new-word entrance animation by toggling a class (AC-I4.2). The
@@ -297,8 +439,10 @@ function applyCardTheme(levelId) {
   }
 }
 
-// Render N word tiles (2 or 3), each tappable to hear that part.
-function renderWordParts(parts) {
+// Render N word tiles (2 or 3), each tappable to hear that part. When
+// `blankIndex` >= 0 (missing-syllable mode, D3) that tile renders as an empty
+// slot the child fills by tapping an option.
+function renderWordParts(parts, blankIndex = -1) {
   wordParts.innerHTML = "";
   parts.forEach((part, i) => {
     if (i > 0) {
@@ -307,6 +451,14 @@ function renderWordParts(parts) {
       plus.setAttribute("aria-hidden", "true");
       plus.textContent = "+";
       wordParts.appendChild(plus);
+    }
+    if (i === blankIndex) {
+      const slot = document.createElement("span");
+      slot.className = "word-tile word-tile-blank";
+      slot.setAttribute("aria-label", `Parte ${i + 1}: por completar`);
+      slot.textContent = "?";
+      wordParts.appendChild(slot);
+      return;
     }
     const btn = document.createElement("button");
     btn.type = "button";
@@ -362,6 +514,104 @@ function renderStickers(view) {
   }
 }
 
+// ---- Armario de Lalo (D1 / AC-M1) ----
+function renderWardrobe(view) {
+  // live preview of the current (customized) Lalo
+  if (wardrobePreview) {
+    mascot.mount(wardrobePreview, view.lalo);
+    mascot.setState("idle");
+  }
+  const unlocked = game.unlockedCustomization();
+  const unlockedColors = new Set(unlocked.colors);
+  const unlockedAcc = new Set(unlocked.accessories);
+  const sel = view.lalo;
+
+  // Colors: tappable swatches; locked ones are non-selectable silhouettes.
+  if (wardrobeColors) {
+    wardrobeColors.innerHTML = "";
+    for (const c of customize.COLORS) {
+      const isUnlocked = unlockedColors.has(c.id);
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "wardrobe-tile wardrobe-color";
+      tile.setAttribute("role", "listitem");
+      tile.dataset.locked = String(!isUnlocked);
+      tile.dataset.selected = String(sel.color === c.id);
+      tile.disabled = !isUnlocked;
+      tile.style.setProperty("--swatch", c.fill);
+      tile.innerHTML = `<span class="swatch" aria-hidden="true"></span>`;
+      tile.setAttribute(
+        "aria-label",
+        `${c.label}${!isUnlocked ? ", bloqueado" : sel.color === c.id ? ", elegido" : ""}`
+      );
+      tile.setAttribute("aria-pressed", String(sel.color === c.id));
+      if (isUnlocked) {
+        tile.addEventListener("click", () =>
+          game.setLaloCustomization({ color: c.id, accessories: sel.accessories })
+        );
+      }
+      wardrobeColors.appendChild(tile);
+    }
+  }
+
+  // Accessories: toggle on/off; locked ones are silhouettes.
+  if (wardrobeAccessories) {
+    wardrobeAccessories.innerHTML = "";
+    for (const a of customize.ACCESSORIES) {
+      const isUnlocked = unlockedAcc.has(a.id);
+      const equipped = sel.accessories.includes(a.id);
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "wardrobe-tile wardrobe-accessory";
+      tile.setAttribute("role", "listitem");
+      tile.dataset.locked = String(!isUnlocked);
+      tile.dataset.selected = String(equipped);
+      tile.disabled = !isUnlocked;
+      // show the accessory snippet on a neutral mascot-space mini SVG
+      tile.innerHTML = `
+        <span class="wardrobe-acc-art" aria-hidden="true">
+          <svg viewBox="0 0 120 120"><rect x="30" y="40" width="60" height="60" rx="26" fill="#e7eefc"/>${a.markup}</svg>
+        </span>
+        <span class="wardrobe-acc-label">${escapeHtml(a.label)}</span>`;
+      tile.setAttribute(
+        "aria-label",
+        `${a.label}${!isUnlocked ? ", bloqueado" : equipped ? ", puesto" : ""}`
+      );
+      tile.setAttribute("aria-pressed", String(equipped));
+      if (isUnlocked) {
+        tile.addEventListener("click", () => {
+          const next = equipped
+            ? sel.accessories.filter((id) => id !== a.id)
+            : [...sel.accessories, a.id];
+          game.setLaloCustomization({ color: sel.color, accessories: next });
+        });
+      }
+      wardrobeAccessories.appendChild(tile);
+    }
+  }
+}
+
+// ---- Jardín de Lalo (D4 / AC-M4) ----
+function renderGarden(view) {
+  if (!gardenCanvas) return;
+  const g = view.garden || [];
+  const unlocked = g.filter((e) => e.unlocked).length;
+  if (gardenSummary) {
+    gardenSummary.textContent = `Jardín de Lalo: ${unlocked} de ${g.length} elementos`;
+  }
+  gardenCanvas.setAttribute("aria-label", `Jardín de Lalo: ${unlocked} elementos`);
+  gardenCanvas.innerHTML = "";
+  for (const e of g) {
+    const cell = document.createElement("div");
+    cell.className = "garden-cell";
+    cell.setAttribute("role", "listitem");
+    cell.dataset.unlocked = String(e.unlocked);
+    cell.innerHTML = `<span class="garden-art" aria-hidden="true">${art.svg(e.artId)}</span>`;
+    cell.setAttribute("aria-label", e.unlocked ? e.label : `${e.label}, por descubrir`);
+    gardenCanvas.appendChild(cell);
+  }
+}
+
 function renderDashboard() {
   const stats = game.dashboardStats();
   // Spanish-voice notice (AC-I2.5): visible only when no Spanish voice exists.
@@ -381,6 +631,15 @@ function renderDashboard() {
 
   // Auto-read toggle (D7 / AC-K7) reflects the persisted setting.
   if (autoReadToggle) autoReadToggle.checked = Boolean(stats.autoRead);
+
+  // Background-music toggle (D8 / AC-M8) reflects the persisted setting.
+  if (musicToggle) musicToggle.checked = Boolean(stats.music);
+
+  // Words-per-level control (iteration 8, D3 / AC-L3.2) reflects the persisted
+  // value. The select offers values across the clamp range (5..20).
+  if (wordsPerLevelSelect && stats.wordsPerLevel != null) {
+    wordsPerLevelSelect.value = String(stats.wordsPerLevel);
+  }
 
   // Voice picker (D3 / AC-K3): (re)populate from the device voices and
   // preselect the persisted choice. "Automática" is the empty-value sentinel.
@@ -437,9 +696,12 @@ onbSkipBtn.addEventListener("click", () => game.skipOnboarding());
 
 mapStickersBtn.addEventListener("click", () => game.goStickers());
 mapDashBtn.addEventListener("click", openDashboardGated);
+if (mapWardrobeBtn) mapWardrobeBtn.addEventListener("click", () => game.goWardrobe());
+if (mapGardenBtn) mapGardenBtn.addEventListener("click", () => game.goGarden());
+if (wardrobeBackBtn) wardrobeBackBtn.addEventListener("click", () => game.goMap());
+if (gardenBackBtn) gardenBackBtn.addEventListener("click", () => game.goMap());
 
 speakBtn.addEventListener("click", () => game.listenAttempt());
-confirmBtn.addEventListener("click", () => game.confirmSaid());
 backBtn.addEventListener("click", () => game.goMap());
 
 summaryContinueBtn.addEventListener("click", () => game.summaryContinue());
@@ -454,7 +716,27 @@ if (autoReadToggle) {
 }
 if (voiceSelect) {
   // "" (Automática) maps to null; any other value is a stable voiceId.
-  voiceSelect.addEventListener("change", (e) => game.setVoicePref(e.target.value || null));
+  voiceSelect.addEventListener("change", (e) => {
+    const id = e.target.value || null;
+    game.setVoicePref(id);
+    // Voice PREVIEW (iteration 9, D7 / AC-M7): speak a short sample word in the
+    // newly chosen voice. Fires only on the adult-initiated change (never on
+    // load); interruptible via speech.speak's cancel; no-ops gracefully when no
+    // usable voice exists.
+    speech.setPreferredVoice(id);
+    speech.speak("Lalo");
+  });
+}
+if (musicToggle) {
+  // Background music (iteration 9, D8 / AC-M8). The toggle is a user gesture, so
+  // turning it ON may legally start the AudioContext per autoplay policy.
+  musicToggle.addEventListener("change", (e) => game.setMusicEnabled(e.target.checked));
+}
+if (wordsPerLevelSelect) {
+  // Words-per-level (iteration 8, D3 / AC-L3.2): persist + clamp via the game.
+  wordsPerLevelSelect.addEventListener("change", (e) =>
+    game.setWordsPerLevel(Number(e.target.value))
+  );
 }
 // Voices load lazily in Chrome; refresh the picker options when they arrive, but
 // only while the dashboard is on screen (re-reads the persisted preference).
@@ -487,12 +769,13 @@ document.addEventListener("keydown", (e) => {
       game.listenToModel();
       break;
     case " ":
-      e.preventDefault();
-      if (game.state.recognitionSupported) game.listenAttempt();
-      else game.confirmSaid();
-      break;
     case "Enter":
-      game.confirmSaid();
+      // Single primary action (iteration 8, AC-L1): no "¡Lo dije!" button to
+      // trigger. On recognition devices this re-opens the mic ("listen again");
+      // on unsupported devices it drives the no-recognition success path. No
+      // key path dead-ends.
+      e.preventDefault();
+      game.primaryAction();
       break;
     case "ArrowRight":
       game.skip();

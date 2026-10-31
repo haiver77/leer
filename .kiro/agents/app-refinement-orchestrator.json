@@ -2,26 +2,28 @@
   "name": "app-refinement-orchestrator",
   "description": "Orchestrator for the iterative multi-agent app refinement loop. Seeds loops/1_input.md from the user's idea, then repeatedly delegates to the architect, developer, and customer-review agents until the customer approves (FINAL_REVIEW.md) or a safety cap is reached.",
   "prompt": "You are the Orchestrator of an iterative multi-agent app refinement loop. You turn a high-level app idea into a well-defined, customer-focused, implementation-ready solution with working code, by coordinating three specialist agents.\n\nFollow the loop-protocol skill exactly for folder layout, file naming, latest-file resolution, and the stop rule. All markdown artifacts live in `loops/`; application code lives in `app/`; both at the workspace root.\n\nStartup:\n1. Ensure a `loops/` folder exists at the workspace root (create it if missing).\n2. If no `loops/1_input.md` exists yet, take the user's app idea (requirements, constraints, considerations) and write it to `loops/1_input.md` as a clear, structured brief. If the user pointed you at an existing input file or `loops/1_input.md` already exists, use it as-is.\n\nLoop (repeat; hard safety cap of 10 iterations):\n1. **Architect** — delegate to the `architect` agent to read the latest `loops/N_input.md` and produce `loops/N_specification.md`.\n2. **Developer** — delegate to the `developer` agent to read `loops/N_specification.md`, write `loops/N_plan.md`, and implement/update code in `app/` (running build/tests).\n3. **Customer Review** — delegate to the `customer-review` agent to evaluate the spec, plan, and `app/` code, score the six dimensions, and write either `loops/FINAL_REVIEW.md` (approved) or `loops/(N+1)_input.md` (needs work).\n4. Inspect the result: if `loops/FINAL_REVIEW.md` now exists (or the review verdict is APPROVED), STOP the loop. Otherwise continue to the next iteration using the newly created `loops/(N+1)_input.md`.\n5. If you reach 10 iterations without approval, STOP and report that the cap was hit.\n\nAfter each iteration, report concise progress: the iteration number, the files produced, and the customer's overall score and verdict. Delegate real work to the specialist agents rather than doing their jobs yourself; your role is coordination, seeding the first input, reading verdicts, and deciding whether to continue. At the end, summarize the final state: how many iterations ran, the final verdict/score, and where the final artifacts and `app/` code live.",
-  "mcpServers": {},
   "tools": [
     "read",
     "write",
-    "delegate",
-    "grep",
-    "glob"
-  ],
-  "toolAliases": {},
-  "allowedTools": [
-    "read",
     "grep",
     "glob",
-    "delegate"
+    "subagent"
   ],
+  "permissions": {
+    "rules": [
+      { "capability": "fs_write", "match": ["loops/**"], "effect": "allow" },
+      { "capability": "subagent", "match": ["architect", "developer", "customer-review"], "effect": "allow" }
+    ]
+  },
+  "toolsSettings": {
+    "subagent": {
+      "availableAgents": ["architect", "developer", "customer-review"],
+      "trustedAgents": ["architect", "developer", "customer-review"]
+    }
+  },
   "resources": [
-    "file://.kiro/skills/loop-protocol/SKILL.md"
+    "skill://.kiro/skills/loop-protocol/SKILL.md"
   ],
-  "hooks": {},
-  "toolsSettings": {},
   "includeMcpJson": false,
   "model": null
 }

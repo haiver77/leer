@@ -170,3 +170,52 @@ test("bumpDailyGoal advances toward target and caps there", () => {
   bumpDailyGoal(s, 1, today); // over target
   assert.equal(s.dailyGoal.progress, 3);
 });
+
+// ---- Iteration 9: lalo customization + music (AC-M1 / AC-M8) ---------------
+
+import { defaultSelection } from "./customize.js";
+
+test("AC-M1 / AC-M8: freshState defaults music OFF and lalo to the default selection", () => {
+  const s = freshState();
+  assert.equal(s.music, false, "music defaults OFF");
+  assert.deepEqual(s.lalo, defaultSelection(), "lalo equals customize.defaultSelection()");
+});
+
+test("AC-M1/M8: migrate fills + validates lalo/music without disturbing other settings", () => {
+  // older v2 blob with neither key → both default, other settings preserved
+  const v2 = migrate({
+    version: 2,
+    stars: 4,
+    autoRead: false,
+    voicePref: "urn:voice:x",
+    wordsPerLevel: 15,
+  });
+  assert.equal(v2.music, false, "music defaults OFF when missing");
+  assert.deepEqual(v2.lalo, defaultSelection(), "lalo defaults when missing");
+  assert.equal(v2.autoRead, false, "autoRead undisturbed");
+  assert.equal(v2.voicePref, "urn:voice:x", "voicePref undisturbed");
+  assert.equal(v2.wordsPerLevel, 15, "wordsPerLevel undisturbed");
+
+  // a saved valid lalo + music are preserved
+  const saved = migrate({
+    version: 2,
+    music: true,
+    lalo: { color: "rose", accessories: ["bow", "hat"] },
+  });
+  assert.equal(saved.music, true);
+  assert.deepEqual(saved.lalo, { color: "rose", accessories: ["bow", "hat"] });
+});
+
+test("AC-M1: migrate replaces a structurally invalid stored lalo with the default", () => {
+  assert.deepEqual(migrate({ version: 2, lalo: "oops" }).lalo, defaultSelection());
+  assert.deepEqual(migrate({ version: 2, lalo: 42 }).lalo, defaultSelection());
+  // partial/garbage shapes coerce to a valid selection
+  const coerced = migrate({ version: 2, lalo: { color: 5, accessories: "x" } });
+  assert.equal(coerced.lalo.color, defaultSelection().color);
+  assert.deepEqual(coerced.lalo.accessories, []);
+  // non-string accessory entries are stripped
+  const stripped = migrate({ version: 2, lalo: { color: "mint", accessories: ["bow", 7, null] } });
+  assert.deepEqual(stripped.lalo, { color: "mint", accessories: ["bow"] });
+  // a non-boolean music coerces to the default OFF
+  assert.equal(migrate({ version: 2, music: "yes" }).music, false);
+});

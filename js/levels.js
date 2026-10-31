@@ -10,6 +10,39 @@
 
 import { forBand } from "./words.js";
 
+// Iteration 8 (D3 / AC-L3): the per-level/session goal is an adult-configurable
+// words-per-level setting, clamped to a sensible range. Levels stay PURE (no
+// import of progress) — game.js passes the current setting in at openLevel().
+export const MIN_WORDS_PER_LEVEL = 5;
+export const MAX_WORDS_PER_LEVEL = 20;
+export const DEFAULT_WORDS_PER_LEVEL = 10;
+
+/**
+ * Coerce + clamp an arbitrary value to a valid integer words-per-level in
+ * [MIN..MAX], defaulting to 10 on anything non-numeric. Pure (AC-L3.1).
+ * @param {*} n
+ * @returns {number}
+ */
+export function clampWordsPerLevel(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return DEFAULT_WORDS_PER_LEVEL;
+  return Math.max(MIN_WORDS_PER_LEVEL, Math.min(MAX_WORDS_PER_LEVEL, v));
+}
+
+/**
+ * The effective number of correct answers to finish a session: the clamped
+ * words-per-level setting, never more than the band's pool size (so a thin band
+ * can never dead-end). Pure (AC-L3.3/L3.4).
+ * @param {number} poolSize
+ * @param {number} wordsPerLevel
+ * @returns {number}
+ */
+export function effectiveGoal(poolSize, wordsPerLevel) {
+  const want = clampWordsPerLevel(wordsPerLevel);
+  const size = Number.isFinite(poolSize) ? poolSize : 0;
+  return Math.min(want, size);
+}
+
 /**
  * Ordered word-band definitions (AC-I1). Each band selects its words by
  * filtering the CSV inventory with the pure helpers in words.js (tier via

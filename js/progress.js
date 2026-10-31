@@ -18,6 +18,23 @@ export const DEFAULT_AUTO_MODEL = 3;
 /** Default daily-goal target (correct answers to fill today's bar). */
 export const DEFAULT_DAILY_TARGET = 10;
 
+/** Words-per-level setting bounds + default (iteration 8, D3 / AC-L3.1). */
+export const DEFAULT_WORDS_PER_LEVEL = 10;
+export const MIN_WORDS_PER_LEVEL = 5;
+export const MAX_WORDS_PER_LEVEL = 20;
+
+/**
+ * Coerce + clamp an arbitrary stored/entered value to a valid integer
+ * words-per-level in [MIN..MAX], defaulting on anything non-numeric. Pure.
+ * @param {*} n
+ * @returns {number}
+ */
+export function clampWordsPerLevel(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return DEFAULT_WORDS_PER_LEVEL;
+  return Math.max(MIN_WORDS_PER_LEVEL, Math.min(MAX_WORDS_PER_LEVEL, v));
+}
+
 /**
  * A fresh, clean v2 progress object (first-run state).
  * @returns {object}
@@ -33,6 +50,14 @@ export function freshState() {
     autoRead: true,
     // Iteration 7 (D3 / AC-K3): adult-chosen reading voice id (null = auto).
     voicePref: null,
+    // Iteration 8 (D3 / AC-L3): adult-set words per level (default 10, 5..20).
+    wordsPerLevel: DEFAULT_WORDS_PER_LEVEL,
+    // Iteration 9 (D1 / AC-M1): Lalo customization (color + accessories). This
+    // literal MUST equal customize.defaultSelection() (pinned by a test); it is
+    // inlined here so progress.js stays free of a module import cycle.
+    lalo: { color: "sky", accessories: [] },
+    // Iteration 9 (D8 / AC-M8): background-music toggle, default OFF.
+    music: false,
     streak: 0,
     bestStreak: 0,
     stars: 0,
@@ -41,6 +66,24 @@ export function freshState() {
     stickers: [],
     dailyGoal: { date: "", progress: 0, target: DEFAULT_DAILY_TARGET },
   };
+}
+
+/**
+ * Coerce an arbitrary stored `lalo` blob into a structurally valid selection
+ * `{ color: string, accessories: string[] }`. Does NOT check unlocks (that
+ * needs the customize catalog; game.js sanitizes against unlocks at load). Pure.
+ * @param {*} raw
+ * @param {{color:string, accessories:string[]}} def default selection
+ * @returns {{color:string, accessories:string[]}}
+ */
+function normalizeLalo(raw, def) {
+  const fallback = { color: def.color, accessories: [...def.accessories] };
+  if (!raw || typeof raw !== "object") return fallback;
+  const color = typeof raw.color === "string" && raw.color ? raw.color : def.color;
+  const accessories = Array.isArray(raw.accessories)
+    ? raw.accessories.filter((a) => typeof a === "string")
+    : [];
+  return { color, accessories };
 }
 
 /**
@@ -94,6 +137,18 @@ export function migrate(raw) {
     typeof raw.voicePref === "string" || raw.voicePref === null
       ? raw.voicePref
       : base.voicePref;
+  // Iteration 8 (AC-L3.1): fill + clamp words-per-level. A missing key defaults
+  // to 10; an out-of-range / non-numeric value is clamped into [MIN..MAX].
+  merged.wordsPerLevel = clampWordsPerLevel(
+    raw.wordsPerLevel === undefined ? base.wordsPerLevel : raw.wordsPerLevel
+  );
+  // Iteration 9 (AC-M1 / AC-M8): fill + validate the new additive keys.
+  // `lalo` must be an object with a string `color` and a string[] `accessories`;
+  // anything malformed falls back to the default selection. (Dropping a *locked*
+  // equipped item needs the customize catalog and is done in game.js at load.)
+  merged.lalo = normalizeLalo(raw.lalo, base.lalo);
+  // `music` is a boolean; a missing / non-boolean value defaults OFF.
+  merged.music = typeof raw.music === "boolean" ? raw.music : base.music;
   // Normalise item records so every item has all fields.
   for (const id of Object.keys(merged.items)) {
     merged.items[id] = { ...freshItem(), ...merged.items[id] };

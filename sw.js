@@ -6,7 +6,7 @@
 // after the first load (F13.2); bundled audio clips (when added) are listed
 // here so modeling works offline — TTS is the fallback for anything missing.
 
-const CACHE_VERSION = "lalo-silabas-v7.0.0";
+const CACHE_VERSION = "lalo-silabas-v9.0.0";
 
 // Real files that make up the offline app shell. Paths are relative to the SW
 // scope (the app/ folder when served from there).
@@ -29,6 +29,11 @@ const SHELL = [
   "./js/art.js",
   "./js/audio.js",
   "./js/adultGate.js",
+  // Iteration 9 (D1/D3/D4): new pure modules precached so the customization
+  // catalog, the garden, and the mini-game modes all work offline.
+  "./js/customize.js",
+  "./js/garden.js",
+  "./js/modes.js",
   // Pedagogical word inventory — precached so words work offline. Iteration 6
   // adds the 4-syllable list (AC-J2 / D2).
   "./data/words-2syllables.csv",

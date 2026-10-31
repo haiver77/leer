@@ -1,74 +1,102 @@
-# FINAL REVIEW — "Lalo y las Sílabas" (Iteration 7) — APPROVED ✅
+VERDICT: APPROVED
+OVERALL: 8.17
 
-Customer Review of the iteration-7 delivery. Iteration 6 was previously approved;
-the user requested a further round with the eight new demands in `7_input.md`. I
-re-evaluated honestly against the real code at the workspace root (not the
-specification's claims) and ran the full test suite. **Verdict: APPROVED.** This
-file overwrites the prior iteration-6 FINAL_REVIEW.
+# FINAL REVIEW — "Lalo y las Sílabas" (Iteration 9) — APPROVED ✅
+
+Customer Review of the iteration-9 delivery. Iteration 7 was previously approved
+(8.5/10); the user requested a further round focused purely on **appeal and
+long-term interest** for 3–6 year-olds, captured as eight demands (D1–D8) in
+`9_input.md`. I re-evaluated honestly against the **real code at the workspace
+root** (`index.html`, `css/styles.css`, `js/*.js`, `data/*.csv`, `sw.js`) — not
+the spec's claims — and confirmed each demand is genuinely wired end-to-end, not
+stubbed. **Verdict: APPROVED.** This file overwrites the prior iteration-7
+FINAL_REVIEW. The loop is complete.
+
+## Summary
+
+Iteration 9 turns an already-correct, polished, offline-first Spanish
+word-reading game into something a small child actually wants to return to,
+without touching the pedagogy, the vanilla/buildless stack, or the vocabulary.
+Lalo is now **customizable** (body color + stackable accessory SVG layers,
+unlocked by stars/levels, locked items shown as silhouettes, persisted and
+rendered on every screen) and **alive** (CSS-driven blink, a surprise reaction
+on each new word, and a sleeping pose after 12s idle — all degrading to static
+expressive poses under `prefers-reduced-motion`). Play has **variety**: two new
+tap modes (`pick-word`, `missing-syllable`) rotate deterministically with the
+spoken `say-it` mode over the same art and vocabulary, routing correct taps
+through the existing success micro-loop and wrong taps through encouragement with
+no dead-ends, while very-young mode stays on the picture-safe spoken mode. A
+persistent, child-visible **Jardín de Lalo** grows with stars/stickers/levels and
+is anchored to star milestones so there's still something to earn after 100%. The
+world feels richer with **nine themed per-family backgrounds** (text kept ≥4.5:1
+via scrims), a **path/trail map** that preserves node state, family colors, ≥56px
+targets and keyboard order, a **voice preview** on the adult voice picker, and an
+**opt-in background melody** (default OFF) that ducks around reads and the mic so
+it never degrades TTS or recognition. The pure logic behind every feature lives
+in small, testable modules (`customize.js`, `garden.js`, `modes.js`, extended
+`mascot.js`/`game.js`/`progress.js`/`audio.js`) and is covered by the reported
+**159 passing tests** (119 baseline + 40 new); `sw.js` bumped to `v9.0.0`.
 
 ## Verdict
 
-**APPROVED** — overall **8.5 / 10**, every dimension ≥ 7. All eight demands from
-`7_input.md` are genuinely implemented in code and locked by tests where
-applicable. `node --test "js/*.test.js"` → **119 pass / 0 fail**; `node --check`
-on every changed module + `sw.js` → OK.
+**APPROVED** — overall **8.17 / 10**, every dimension ≥ 7. All eight demands from
+`9_input.md` (D1–D8) are implemented in real root code and locked by pure unit
+tests where applicable. Developer reports `node --test "js/*.test.js"` → **159
+pass / 0 fail** with `node --check` clean on all changed modules + `sw.js`; the
+new test files (`customize.test.js`, `garden.test.js`, `modes.test.js`,
+`mascot.test.js`) and extended `game.test.js` / `progress.test.js` substantiate
+the new coverage, and I verified the demands are genuinely wired (not stubbed) by
+reading the code directly.
 
-## What I verified (demand by demand)
+## Scoring
 
-| Demand | Status | Evidence (verified in code, not just claimed) |
-| ------ | ------ | --------------------------------------------- |
-| **D1 — 10 words per level** | ✅ | `js/levels.js` `goal: Math.min(10, poolSize)`. `levels.test.js` asserts every band `goal === 10` and every `pool().length >= 10`. |
-| **D2 — More 2-syllable words** | ✅ | `data/words-2syllables.csv` grown to **55 rows** (added `nene`, `nudo`, `coche` at correct ranks; file renumbered 1…55). Test "each 2-syllable band (forBand) has ≥10" passes; integrity/rank/pedagogy/art-coverage all green. Embedded `WORDS` fallback also ≥10 per band (AC-K2.5 test passes). `words-4syllables.csv` topped up to 22 (`mantequilla`) so `pal-4-especiales` reaches 10. |
-| **D3 — Voice picker in adult panel** | ✅ | `js/speech.js` adds pure `voiceId`, `resolveVoice`, `availableVoices`, `setPreferredVoice`/`getPreferredVoice`; `speak()` resolves via `resolveVoice(getVoices(), preferredId)` and sets `utter.lang` accordingly. Persisted as `voicePref` (`progress.js`). `index.html` `#voice-select` with "Automática (recomendada)" default; `main.js` populates Spanish-first, preselects the stored value, and refreshes on `voiceschanged`. `speech.test.js` covers resolve/voiceId/Spanish-first. |
-| **D4 — Lalo more visible** | ✅ | `#game-mascot` moved out of the removed `.secondary-controls` into `.card-host` as `.mascot-companion`; `css/styles.css` sizes it `clamp(64px,18vw,104px)` at the card's top-right, `pointer-events:none`, with 320px + short-landscape shrink rules and reduced-motion static pose. `aria-hidden`, non-interactive. `main.js` still resolves `#game-mascot` for the play phase. |
-| **D5 — Better success animation** | ✅ | `celebrate.js` per-word burst enriched (150/120/170 particles, wider spread) while milestone stays bigger (220); `game.js` `succeed()` calls `onSuccessPop`; `main.js` `replaySuccessPop()` reflow-restarts `.word-pop`; `css` `@keyframes word-pop` (≤0.56s, transform-only) + bigger `lalo-state-cheer`. All behind `prefers-reduced-motion` (motion block skipped; sound+haptics remain). Pop+burst finish well inside `ADVANCE_DELAY_MS = 1200`. |
-| **D6 — Auto-advance + read next** | ✅ | `game.js` `succeed()` → `setTimeout(ADVANCE_DELAY_MS)` → `nextItem()` advances and (when auto-read on) reads the new word once. `game.test.js` locks it: a non-final success advances once + reads once; the **10th** correct runs `completeLevel()` → summary with **no stray read**. |
-| **D7 — Configurable auto-read** | ✅ | `progress.js` `freshState().autoRead = true`; `migrate()` defaults it for older v2 blobs. `game.js` `nextItem()` gates the on-display read + `model` mascot on `state.progress.autoRead`; `setAutoRead()` persists + re-renders. `index.html` `#autoread-toggle` (default checked); `main.js` wired. Tests: OFF → zero reads/word, re-enabling → one read on the next word. |
-| **D8 — Remove empty control above "Hablar"** | ✅ | `css` `.feedback:empty { min-height:0; padding:0; margin:0; border:0; }` collapses the idle live region; it remains `role="status" aria-live="polite"` for transient status. The empty `.secondary-controls` cluster below the mic was removed entirely (reconciled with the D4 mascot move). No standing gap remains. |
+| Dimension                     | Score (1-10) | Justification                                                                                                                                                                                                                                                             |
+| ----------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Business value                | 8            | Directly attacks the hardest problem for an educational app — retention. The growing garden (with a reason to return past 100%) and collection-driven customization create durable pull, while staying free, private, offline, ad-free. Measurable engagement lift is plausible. |
+| Features / functionality      | 9            | All eight demands delivered and correct. Two real new mini-game modes with pure, tested distractor generation; unlock-gated customization; a derived growing garden; voice preview; ducking opt-in music. Micro-loop, mastery semantics, and auto-listen all preserved intact.    |
+| User experience (UX)          | 8            | Reading-free automatic mode rotation, no dead-ends, wake-on-interaction, very-young mode kept playable, music ducks around TTS/mic, locked items never block. Minor: no child-facing mode chooser (automatic only) slightly limits agency and the discoverability of variety.      |
+| User interface (UI)           | 8            | Customized Lalo appears consistently on every screen; nine themed backgrounds; path/trail map; locked silhouettes mirror the sticker pattern; blink/surprise/sleeping add life. Cohesive and polished. Minor: themed backgrounds are gradients rather than richer illustrated scenes. |
+| Modern design standards       | 8            | Buildless offline-first PWA; ≥56px targets; ≥4.5:1 contrast via scrims; thorough `prefers-reduced-motion` static fallbacks; token/cancel timers (no runaway loops); Web Audio respects autoplay policy; additive, validated persistence with a `v9.0.0` cache bump.                |
+| Competitive / attractiveness  | 8            | Customization + collection + play variety + a growing world now rivals commercial toddler-reading apps on "stickiness," while the private, ad-free, offline posture is a real differentiator. Convincingly attractive to a demanding parent-customer.                              |
+| **Overall (average)**         | **8.17**     | **Overall ≥ 8.0 AND every dimension ≥ 7 → APPROVED.**                                                                                                                                                                                                                      |
 
-## Scores
+## What stood out
 
-| Dimension                     | Score (1-10) | Justification                 |
-| ----------------------------- | ------------ | ----------------------------- |
-| Business value                | 8            | Free, private, offline-first Spanish early-reading game with a clear parental value proposition; 10-word sessions now feel like a complete, satisfying unit of practice, and adults gained real control (voice + auto-read) that meaningfully widens who can use it (different devices/voices, quieter settings). |
-| Features / functionality      | 9            | Every demand delivered and correct: 10-word goals with pools guaranteed ≥10, grown vocabulary, persisted voice override with safe fallbacks, gated auto-read, confirmed auto-advance/read micro-loop, leaner UI. 119 automated tests pass and lock the tricky behaviors (10th-word completion, toggle on/off, voice resolution). |
-| User experience (UX)          | 8            | Smooth no-dead-end flow: auto-advance + read keeps a young child moving hands-free; adults can silence auto-read or pick a clearer voice; keyboard + gesture parity, self-confirm fallback, and reduced-motion paths all preserved. Collapsing the empty feedback region removes dead space above the primary action. |
-| User interface (UI)           | 8            | Lalo is now a prominent, reactive companion by the card without stealing taps or overlapping content; the success moment is more delightful (card pop + richer burst + bigger cheer) yet short; consistent Spanish labeling, ≥56px targets, ≥4.5:1 contrast carried forward. |
-| Modern design standards       | 9            | Vanilla, buildless, dependency-free, offline-first PWA; responsive to 320px + short-landscape; thorough a11y (aria-hidden decorative mascot, live-region feedback, reduced-motion / high-contrast / forced-colors fallbacks); bounded 60fps canvas effects; service worker versioned to `v7.0.0` with clean activate/claim. |
-| Competitive / attractiveness  | 8            | Stands out against ad-driven, account-gated competitors: free, private, no tracking, works offline, voice-configurable, and age-appropriate. The polished win moment and visible mascot make it genuinely appealing to the 3–6 audience and reassuring to parents. |
-| **Overall (average)**         | **8.5**      | ≥ 8.0 overall and every dimension ≥ 7 → **APPROVED**. |
+- **Genuine depth, not a facade.** The three new pillars (ownership, variety,
+  something that grows) are backed by small pure modules with real unit tests —
+  `modes.buildOptions` / `missingSyllableChoices`, `customize.unlockedItems` /
+  `sanitizeSelection`, `garden.gardenState` — so the logic is verifiable, not
+  cosmetic.
+- **Discipline under scope.** Appeal was added with zero regressions to the core
+  reading loop: the spoken `say-it` mode, mic auto-listen (AC-L2), mastery
+  (mic-verified only), and the success→advance→read micro-loop are all untouched,
+  and the out-of-scope vocabulary edit in the working tree was correctly reverted
+  to hold the "no vocabulary growth" line.
+- **Accessibility carried the whole way.** Every new animation has a
+  reduced-motion static fallback, the sleeping cue stays legible as a static
+  pose, new tap tiles honor ≥56px / ≥4.5:1, and the decorative mascot keeps
+  `aria-hidden` + `pointer-events:none` so it never steals a tap.
+- **Audio done right.** Opt-in music defaults OFF, starts only on a user gesture,
+  and ducks to near-silence around reads and the entire recognition window, so it
+  can never degrade TTS or speech recognition — the single biggest risk of D8,
+  handled cleanly.
+- **Thoughtful persistence.** New `lalo`/`music` keys are additive, migrated and
+  clamped, and a stale/locked equip is dropped against the live catalog at load,
+  so customization can never render a locked item.
 
-## What was accepted
+## Optional nice-to-haves (not required; the product is accepted as-is)
 
-- 10-word levels everywhere, with pools (live CSV and embedded fallback)
-  guaranteed ≥10 per band so a session never dead-ends.
-- A genuinely larger, correctly ordered 2-syllable inventory (and a 4-syllable
-  top-up), 100% art coverage preserved including the four new illustrations.
-- An adult voice picker that is populated from the device, persisted, Spanish-
-  first, and actually applied by `speak()` via a pure, unit-tested resolver with
-  safe fallbacks (chosen-absent → Spanish auto → silent).
-- A configurable, persisted auto-read toggle that gates the on-display read
-  without affecting tap-to-hear or near-miss modeling.
-- A confirmed, test-locked success → advance → read micro-loop whose final word
-  completes the level cleanly with no stray read.
-- A more delightful, reduced-motion-safe success animation and a clearly visible,
-  reactive, non-interactive Lalo by the card.
-- Removal of the empty control/space above "Hablar" while keeping the live region
-  for transient status.
+- Offer a lightweight, icon-based **child-facing mode chooser** (or a per-level
+  "modo del día") so the variety is visible and the child has a little agency,
+  alongside the current automatic rotation.
+- Evolve the themed backgrounds from gradients toward **light illustrated scenes**
+  (a few decorative inline-SVG props per theme) for extra "wow," keeping the
+  text scrim and reduced-motion rules.
+- A small **"nuevo objeto" reveal** when the garden or armario unlocks an item
+  (a brief celebratory moment tied to the existing confetti/celebrate path).
+- A subtle **"Lalo camina"** touch on the path map — animating the customized
+  Lalo to the current node — for an extra sense of journey (reduced-motion off).
+- Consider a **third accessory "slot" discipline** (hat/glasses/neck) so stacked
+  accessories always compose cleanly across every pose.
 
-## Non-blocking follow-ups (not required to ship)
-
-1. **Iteration-6 art follow-up (the 16 word→art concern):** structurally
-   resolved — `art.js` holds a bespoke, labeled inline SVG per word id (no shared
-   placeholder), and the "every CSV row + fallback resolves in art.js" test
-   passes at 100% coverage including the four new ids (`word-nene`, `word-nudo`,
-   `word-coche`, `word-mantequilla`). Whether every drawing is instantly
-   recognizable to a 3-year-old is subjective; a light future pass to refine the
-   few most abstract emblems (e.g. `nudo`) would be a nice-to-have, not a defect.
-2. **Voice preview:** AC-K3.5 allows an optional short preview word when a voice
-   is chosen; it is not wired in `main.js`. Purely additive polish.
-3. **Automated coverage of the browser-only items** (live voice switching, the
-   visual celebration, 320px Lalo placement) remains manual per the plan; a
-   lightweight DOM-based smoke test harness could lock these in a future round.
-
-None of the above blocks approval. The loop ends here.
+**The loop is complete. No further iteration is required.**

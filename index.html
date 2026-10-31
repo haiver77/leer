@@ -51,6 +51,12 @@
         <header class="map-top">
           <h2 id="map-title" class="screen-title">El mapa de Lalo</h2>
           <div class="map-top-actions">
+            <button id="map-wardrobe-btn" type="button" class="icon-btn" aria-label="Armario de Lalo">
+              <span aria-hidden="true">🎨</span>
+            </button>
+            <button id="map-garden-btn" type="button" class="icon-btn" aria-label="Jardín de Lalo">
+              <span aria-hidden="true">🌱</span>
+            </button>
             <button id="map-stickers-btn" type="button" class="icon-btn" aria-label="Álbum de pegatinas">
               <span aria-hidden="true">🏅</span>
             </button>
@@ -63,12 +69,23 @@
           <span class="daily-goal-label" aria-hidden="true">Meta de hoy</span>
           <div class="daily-goal-bar"><div id="daily-goal-fill" class="daily-goal-fill"></div></div>
         </div>
-        <div id="map-grid" class="map-grid" role="list" aria-label="Niveles"></div>
+        <!-- The map re-presented as a sendero / trail (D6 / AC-M6): the node
+             markup + state are unchanged; `.map-trail` styles them as a path. -->
+        <div id="map-grid" class="map-grid map-trail" role="list" aria-label="Niveles"></div>
       </section>
 
       <!-- ============ Game / play screen (immersive, card = hero) ======== -->
-      <section id="game-screen" class="screen game" aria-labelledby="game-heading" hidden>
+      <section id="game-screen" class="screen game" aria-labelledby="game-heading" data-theme="" hidden>
         <h2 id="game-heading" class="sr-only">Jugar</h2>
+
+        <!-- Themed-background ambient layer (D5 / AC-M5.3): purely decorative
+             drifting shapes, disabled under prefers-reduced-motion, never
+             capturing pointer events. -->
+        <div id="game-ambient" class="game-ambient" aria-hidden="true">
+          <span class="ambient-shape ambient-1"></span>
+          <span class="ambient-shape ambient-2"></span>
+          <span class="ambient-shape ambient-3"></span>
+        </div>
 
         <!-- Compact top bar: quiet back + small score, never competing with the card -->
         <header class="game-top">
@@ -102,6 +119,10 @@
             <div id="word-whole" class="word-whole" role="img" aria-label="Palabra">pato</div>
           </div>
 
+          <!-- Mini-game mode options (D3 / AC-M3): tap tiles for the picture /
+               word / syllable modes. Hidden in the say-it (read-and-say) mode. -->
+          <div id="mode-options" class="mode-options" role="group" aria-label="Elige la respuesta" hidden></div>
+
           <!-- Visible Lalo companion (iteration 7, D4 / AC-K4): a larger,
                persistent mascot anchored to the card's corner so the child sees
                it clearly during play. Decorative + non-interactive
@@ -126,6 +147,11 @@
                tapping the card (or Enter/Space/'l'), so the old 🔊 button is
                gone (D3 / AC-I3.1). -->
           <div class="primary-action">
+            <!-- The mic is the single primary action (iteration 8, D1 /
+                 AC-L1): the "¡Lo dije!" button is removed. The mic opens by
+                 itself on each word (AC-L2) and stays as a manual "escuchar
+                 otra vez". On devices without recognition it is hidden and the
+                 child completes a word by tapping the card (AC-L1.3). -->
             <button
               id="speak-btn"
               type="button"
@@ -134,9 +160,6 @@
               aria-pressed="false"
             >
               <span aria-hidden="true">🎤</span> <span class="btn-label">Hablar</span>
-            </button>
-            <button id="confirm-btn" type="button" class="btn btn-confirm" aria-label="Un adulto confirma que lo dijo">
-              <span aria-hidden="true">✅</span> <span class="btn-label">¡Lo dije!</span>
             </button>
           </div>
           <!-- The old `.secondary-controls` cluster (which only held the small
@@ -167,6 +190,35 @@
           <span class="spacer" aria-hidden="true"></span>
         </header>
         <div id="sticker-grid" class="sticker-grid" role="list" aria-label="Pegatinas"></div>
+      </section>
+
+      <!-- ============ Armario de Lalo (customization, D1) ============ -->
+      <section id="wardrobe-screen" class="screen wardrobe" aria-labelledby="wardrobe-title" hidden>
+        <header class="map-top">
+          <button id="wardrobe-back-btn" type="button" class="icon-btn icon-btn-quiet" aria-label="Volver al mapa">
+            <span aria-hidden="true">🗺️</span>
+          </button>
+          <h2 id="wardrobe-title" class="screen-title">Armario de Lalo</h2>
+          <span class="spacer" aria-hidden="true"></span>
+        </header>
+        <div id="wardrobe-preview" class="mascot mascot-big wardrobe-preview" aria-hidden="true"></div>
+        <h3 class="wardrobe-group-title">Color</h3>
+        <div id="wardrobe-colors" class="wardrobe-grid" role="list" aria-label="Colores de Lalo"></div>
+        <h3 class="wardrobe-group-title">Accesorios</h3>
+        <div id="wardrobe-accessories" class="wardrobe-grid" role="list" aria-label="Accesorios de Lalo"></div>
+      </section>
+
+      <!-- ============ Jardín de Lalo (growing collection, D4) ============ -->
+      <section id="garden-screen" class="screen garden-screen" aria-labelledby="garden-title" hidden>
+        <header class="map-top">
+          <button id="garden-back-btn" type="button" class="icon-btn icon-btn-quiet" aria-label="Volver al mapa">
+            <span aria-hidden="true">🗺️</span>
+          </button>
+          <h2 id="garden-title" class="screen-title">Jardín de Lalo</h2>
+          <span class="spacer" aria-hidden="true"></span>
+        </header>
+        <p id="garden-summary" class="garden-summary" role="status">Jardín de Lalo</p>
+        <div id="garden-canvas" class="garden-canvas" role="list" aria-label="Jardín de Lalo"></div>
       </section>
 
       <!-- ============ Adult dashboard ============ -->
@@ -253,6 +305,23 @@
             <select id="voice-select" class="select">
               <option value="">Automática (recomendada)</option>
             </select>
+          </label>
+          <!-- Words-per-level (iteration 8, D3 / AC-L3): how many words a level
+               has. Persisted + clamped (5..20); default 10. -->
+          <label class="field">
+            <span class="field-label">Palabras por nivel</span>
+            <select id="words-per-level" class="select">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+          </label>
+          <!-- Background music (iteration 9, D8 / AC-M8): a soft optional melody,
+               default OFF, ducks around read-aloud + the mic. -->
+          <label class="toggle">
+            <input id="music-toggle" type="checkbox" />
+            <span>Música de fondo</span>
           </label>
           <button id="reset-btn" type="button" class="btn btn-danger" aria-label="Borrar todo el progreso">
             Borrar progreso <span aria-hidden="true">🗑️</span>
