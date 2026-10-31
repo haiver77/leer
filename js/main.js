@@ -49,8 +49,7 @@ const mapWardrobeBtn = el("map-wardrobe-btn");
 const mapGardenBtn = el("map-garden-btn");
 const dailyFill = el("daily-goal-fill");
 
-// Mode options (D3), themed background (D5)
-const modeOptions = el("mode-options");
+// Themed background (D5)
 const gameScreen = el("game-screen");
 
 // Armario de Lalo (D1)
@@ -284,24 +283,11 @@ function renderPlay(view) {
   // The word view is the only card content now (D1). Mark a fresh word so the
   // CSS entrance animation (AC-I4.2) can replay on each new item.
   if (view.currentWord) {
-    // In the missing-syllable mode, blank one syllable tile + mask the whole
-    // word so the child supplies the piece (D3 / AC-M3.1).
-    const ms = view.modeOptions && view.modeOptions.kind === "missing-syllable"
-      ? view.modeOptions.blankIndex
-      : -1;
-    renderWordParts(view.currentWord.parts, ms);
-    const whole =
-      ms >= 0
-        ? view.currentWord.parts
-            .map((p, i) => (i === ms ? "__" : p.toLowerCase()))
-            .join("-")
-        : view.currentWord.word;
+    renderWordParts(view.currentWord.parts);
+    const whole = view.currentWord.word;
     const changed = wordWhole.textContent !== whole;
     wordWhole.textContent = whole;
-    wordWhole.setAttribute(
-      "aria-label",
-      ms >= 0 ? "Completa la sílaba que falta" : `Palabra: ${view.currentWord.word}`
-    );
+    wordWhole.setAttribute("aria-label", `Palabra: ${view.currentWord.word}`);
     // Scale font to the syllable count so 2- and 3-part words both fit (G1.2).
     wordView.dataset.parts = String(view.currentWord.parts.length);
     if (changed) replayNewWordEntrance();
@@ -311,17 +297,11 @@ function renderPlay(view) {
   // screen from the current band. Text stays on a scrim at ≥4.5:1 (CSS).
   if (gameScreen) gameScreen.dataset.theme = themeForLevel(def && def.id);
 
-  // Mini-game MODE OPTIONS (D3 / AC-M3): render tap tiles for the active mode,
-  // or hide the container for the say-it read-and-say mode.
-  renderModeOptions(view);
-
   // The mic is the single primary action (iteration 8, D1 / AC-L1): the old
   // "¡Lo dije!" button is gone. It auto-opens on each word (AC-L2) and stays as
   // a manual "listen again" trigger. On devices without recognition the mic is
   // hidden and the child completes a word by tapping the card (AC-L1.3).
-  // In a tap-based mode the mic is hidden (the child answers by tapping).
-  const tapMode = Boolean(view.modeOptions);
-  speakBtn.hidden = tapMode || !view.recognitionSupported;
+  speakBtn.hidden = !view.recognitionSupported;
   speakBtn.classList.toggle("is-listening", view.listening);
   speakBtn.setAttribute("aria-pressed", String(view.listening));
 }
@@ -346,51 +326,6 @@ function themeForLevel(levelId) {
   return prefix ? LEVEL_THEMES[prefix] : "meadow";
 }
 
-// Render the tap-mode option tiles (pick-word / missing-syllable). Hidden for
-// say-it. Each tile is a ≥56px button routing to game.answerOption(...).
-function renderModeOptions(view) {
-  if (!modeOptions) return;
-  const mo = view.modeOptions;
-  if (!mo) {
-    modeOptions.hidden = true;
-    modeOptions.innerHTML = "";
-    modeOptions.dataset.kind = "";
-    return;
-  }
-  modeOptions.hidden = false;
-  modeOptions.dataset.kind = mo.kind;
-  modeOptions.innerHTML = "";
-
-  if (mo.kind === "pick-word") {
-    modeOptions.setAttribute("aria-label", "¿Cuál es la palabra?");
-    for (const w of mo.options) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "mode-tile mode-tile-word";
-      btn.textContent = w;
-      btn.setAttribute("aria-label", `Palabra: ${w}`);
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        game.answerOption(w);
-      });
-      modeOptions.appendChild(btn);
-    }
-  } else if (mo.kind === "missing-syllable") {
-    modeOptions.setAttribute("aria-label", "Completa la sílaba que falta");
-    for (const s of mo.options) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "mode-tile mode-tile-syllable";
-      btn.textContent = s;
-      btn.setAttribute("aria-label", `Sílaba: ${s}`);
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        game.answerOption(s);
-      });
-      modeOptions.appendChild(btn);
-    }
-  }
-}
 
 // Retrigger the new-word entrance animation by toggling a class (AC-I4.2). The
 // browser restarts the CSS keyframe when the class is removed then re-added.
@@ -439,10 +374,8 @@ function applyCardTheme(levelId) {
   }
 }
 
-// Render N word tiles (2 or 3), each tappable to hear that part. When
-// `blankIndex` >= 0 (missing-syllable mode, D3) that tile renders as an empty
-// slot the child fills by tapping an option.
-function renderWordParts(parts, blankIndex = -1) {
+// Render N word tiles (2 or 3), each tappable to hear that syllable part.
+function renderWordParts(parts) {
   wordParts.innerHTML = "";
   parts.forEach((part, i) => {
     if (i > 0) {
@@ -451,14 +384,6 @@ function renderWordParts(parts, blankIndex = -1) {
       plus.setAttribute("aria-hidden", "true");
       plus.textContent = "+";
       wordParts.appendChild(plus);
-    }
-    if (i === blankIndex) {
-      const slot = document.createElement("span");
-      slot.className = "word-tile word-tile-blank";
-      slot.setAttribute("aria-label", `Parte ${i + 1}: por completar`);
-      slot.textContent = "?";
-      wordParts.appendChild(slot);
-      return;
     }
     const btn = document.createElement("button");
     btn.type = "button";

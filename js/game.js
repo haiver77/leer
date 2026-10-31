@@ -13,7 +13,6 @@ import * as words from "./words.js";
 import * as audio from "./audio.js";
 import * as customize from "./customize.js";
 import * as garden from "./garden.js";
-import * as modes from "./modes.js";
 
 const ADVANCE_DELAY_MS = 1200;
 
@@ -116,11 +115,6 @@ export function createGame(handlers, deps = {}) {
     levelGoal: 0,
     onboardingStep: 0,
     lastVerified: false, // whether last success was mic-verified
-    // Iteration 9 (D3 / AC-M3): per-level word index drives the mode rotation;
-    // `activeMode` + `modeOptions` are exposed to the UI for tap-based modes.
-    wordIndex: 0,
-    activeMode: "say-it",
-    modeOptions: null, // { kind, options, ...mode-specific } or null for say-it
     // Iteration 9 (D2 / AC-M2.4): idle→sleep bookkeeping (token/cancel pattern).
     sleepToken: 0,
   };
@@ -156,8 +150,9 @@ export function createGame(handlers, deps = {}) {
       lalo: state.progress.lalo,
       garden: garden.gardenState(state.progress),
       music: state.progress.music,
-      activeMode: state.activeMode,
-      modeOptions: state.modeOptions,
+      // Only the read-and-say repetition mode remains; kept for UI compat.
+      activeMode: "say-it",
+      modeOptions: null,
     };
   }
 
@@ -342,7 +337,6 @@ export function createGame(handlers, deps = {}) {
     state.previous = null;
     state.levelCorrect = 0;
     state.levelStars = 0;
-    state.wordIndex = 0; // restart the per-level mode rotation (D3)
     // Session goal honors the live adult setting (iteration 8, D3 / AC-L3.3).
     // Clamped to the pool so a thin band never dead-ends (AC-L3.4).
     state.levelGoal = levels.effectiveGoal(
@@ -373,16 +367,6 @@ export function createGame(handlers, deps = {}) {
     // record it was seen
     progress.recordSeen(state.progress, next);
 
-    // Iteration 9 (D3 / AC-M3): choose this word's practice mode from the pure
-    // rotation (very-young stays on the picture-based "say-it"), and prepare its
-    // options for tap-based modes. The read→auto-listen path below runs for
-    // "say-it"; tap modes complete via answerOption().
-    state.activeMode = modes.pickMode(state.levelId, state.wordIndex, {
-      veryYoung: state.progress.veryYoung,
-    });
-    state.modeOptions = buildModeOptions(state.activeMode, next);
-    state.wordIndex += 1;
-
     save();
     render();
 
@@ -392,16 +376,9 @@ export function createGame(handlers, deps = {}) {
     react("surprise");
     scheduleSleep();
 
-    // Tap-based modes do not auto-read/auto-listen; the child reads the prompt
-    // and taps an option (success via answerOption). We still model the prompt
-    // word once (like a read) when auto-read is on, so the word is heard.
-    if (state.activeMode !== "say-it") {
-      if (state.progress.autoRead) {
-        handlers.onMascot("model");
-        duckForRead(audio.model(state.current));
-      }
-      return;
-    }
+    // Only the read-and-say repetition mode remains: every new word is auto-read
+    // (when enabled) and then the mic opens by itself so the child repeats it.
+    //
     // Auto-read on display (iteration 6, D4), now gated by the adult setting
     // (iteration 7, D7 / AC-K7.3). When ON, every new word is modeled aloud as
     // soon as it appears — no tap, no throttle — with Lalo in "model". When
@@ -434,33 +411,6 @@ export function createGame(handlers, deps = {}) {
   }
 
   /**
-   * Build the UI options for a tap-based mode (D3 / AC-M3). Returns null for the
-   * say-it mode (no options). Pure aside from the option generators' randomness.
-   * @param {string} mode
-   * @param {string} targetWord
-   */
-  function buildModeOptions(mode, targetWord) {
-    if (mode === "pick-word") {
-      const pool = Array.isArray(state.pool) ? state.pool : [];
-      return { kind: "pick-word", options: modes.buildOptions(targetWord, pool, 3) };
-    }
-    if (mode === "missing-syllable") {
-      const entry = words.byWord(targetWord);
-      const parts = entry && Array.isArray(entry.parts) ? entry.parts : [];
-      // distractor syllables: parts of other pool words, flattened + unique.
-      const otherParts = [];
-      for (const w of state.pool) {
-        if (w === targetWord) continue;
-        const e = words.byWord(w);
-        if (e && Array.isArray(e.parts)) otherParts.push(...e.parts);
-      }
-      const choice = modes.missingSyllableChoices(targetWord, parts, 3, otherParts);
-      return { kind: "missing-syllable", ...choice };
-    }
-    return null;
-  }
-
-  /**
    * Duck the background music around a read, restoring it when the read
    * resolves. Returns the (possibly already-resolved) read promise so callers
    * can chain. When music is off / unavailable this is a harmless no-op.
@@ -475,35 +425,6 @@ export function createGame(handlers, deps = {}) {
     };
     p.then(restore, restore);
     return p;
-  }
-
-  /**
-   * Handle a tap on a mode option (D3 / AC-M3.3/M3.4). A correct option
-   * completes the word via the self-confirm success path (verified:false — no
-   * mic match, so no mastery credit); a wrong option encourages + lets the child
-   * retry (never a fail, never a dead-end). No-op outside a tap-based play mode.
-   * @param {string} value the tapped option's value (a word, or a syllable)
-   */
-  function answerOption(value) {
-    if (state.phase !== "play") return;
-    if (!state.modeOptions) return; // say-it has no options
-    wakeLalo();
-
-    let correct = false;
-    if (state.modeOptions.kind === "pick-word") {
-      correct = String(value) === String(state.current);
-    } else if (state.modeOptions.kind === "missing-syllable") {
-      correct = String(value) === String(state.modeOptions.correct);
-    }
-
-    if (correct) {
-      succeed({ verified: false });
-    } else {
-      handlers.onMascot("encourage");
-      handlers.onFeedback("Casi… intenta otra vez 🙂", "retry");
-      audio.model(state.current); // model the prompt again to help
-      scheduleSleep();
-    }
   }
 
   // ---- Speech / answering ---------------------------------------------------
@@ -897,7 +818,6 @@ export function createGame(handlers, deps = {}) {
     summaryContinue,
     dashboardStats,
     // Iteration 9
-    answerOption,
     setLaloCustomization,
     laloSelection,
     gardenState,

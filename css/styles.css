@@ -1528,42 +1528,6 @@ body.very-young .dashboard .feedback {
   z-index: 1;
 }
 
-/* ---------- Mini-game mode options (D3 / AC-M3) ----------
-   Tap tiles for pick-word / missing-syllable. >=56px targets, >=4.5:1 text. */
-.mode-options {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: clamp(8px, 2.5vw, 16px);
-  margin-top: clamp(8px, 2vh, 16px);
-  width: 100%;
-}
-.mode-options[hidden] { display: none; }
-.mode-tile {
-  min-height: 56px;
-  min-width: 72px;
-  padding: 12px clamp(14px, 4vw, 24px);
-  border: 3px solid #2f3a66;
-  border-radius: 16px;
-  background: #fff;
-  color: #141a3a;
-  font-size: clamp(1.2rem, 5vw, 1.8rem);
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: transform 0.12s ease, background 0.15s ease;
-}
-.mode-tile:hover { transform: translateY(-2px); background: #f3f6ff; }
-.mode-tile:active { transform: translateY(0) scale(0.96); }
-.mode-tile-syllable { text-transform: none; }
-
-/* Blank syllable slot in the missing-syllable mode. */
-.word-tile-blank {
-  background: #fff6c2;
-  border: 3px dashed #d2a400;
-  color: #b38600;
-}
-
 /* ---------- Armario de Lalo (D1 / AC-M1) ---------- */
 .wardrobe {
   text-align: center;
