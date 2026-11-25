@@ -84,6 +84,22 @@ export async function model(id) {
   }
 }
 
+/**
+ * Say a short phrase aloud (Lalo's spoken praise). Uses the same Spanish /
+ * adult-chosen TTS voice as model(). Always resolves (bounded by speech.speak's
+ * own safety timeout) and never throws, so it can never block the game.
+ * @param {string} text plain text without emoji
+ * @returns {Promise<void>}
+ */
+export async function say(text) {
+  if (!text) return;
+  try {
+    await speech.speak(text);
+  } catch (_e) {
+    /* never dead-end */
+  }
+}
+
 // ---- Background music (iteration 9, D8 / AC-M8) ----------------------------
 // A soft, gentle, Web-Audio-generated loop (no files, no library). It starts
 // only after a user gesture (autoplay policy), stays at a low volume, ducks to

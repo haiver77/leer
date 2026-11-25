@@ -7,6 +7,8 @@
 // This module is pure (string in → string out) and safe to import in Node,
 // though it's primarily consumed by the browser UI.
 
+import { EXTRA_WORD_ART } from "./art-words-extra.js";
+
 const W = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"';
 
 /** Wrap inner markup in a standard square SVG with an accessible title. */
@@ -764,6 +766,16 @@ const ISLAND_ART = {
   // iteration-6: split 3-syllable band + new 4-syllable islands (AC-J3)
   "island-words-3-1": islandArt("palabras largas fáciles", "#ee6c4d"),
   "island-words-3-2": islandArt("palabras largas nuevas", "#f3722c"),
+  // iteration-10: units split into ~10-15 words each (+ closed-syllable units)
+  "island-words-2-1b": islandArt("más palabras fáciles", "#ff7aa5"),
+  "island-words-2-3b": islandArt("más aventuras", "#2ec4a0"),
+  "island-words-2-cer": islandArt("sílabas con cola", "#e07a1f"),
+  "island-words-2-cer-b": islandArt("más sílabas con cola", "#c9651a"),
+  "island-words-3-1b": islandArt("selva de palabras", "#f0845f"),
+  "island-words-3-2b": islandArt("cohetes veloces", "#e8622a"),
+  "island-words-3-2c": islandArt("hasta las estrellas", "#d4511f"),
+  "island-words-3-cer": islandArt("sílabas con cola grande", "#7b4bd1"),
+  "island-words-3-esp-b": islandArt("más tesoros", "#8a3fd9"),
   "island-words-4-abi": islandArt("palabras gigantes", "#277da1"),
   "island-words-4-esp": islandArt("campeones de 4 sílabas", "#3a0ca3"),
 };
@@ -836,6 +848,7 @@ const ICON_ART = {
 
 const REGISTRY = {
   ...WORD_ART,
+  ...EXTRA_WORD_ART,
   ...ISLAND_ART,
   ...STICKER_ART,
   ...GARDEN_ART,

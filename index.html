@@ -51,6 +51,10 @@
         <header class="map-top">
           <h2 id="map-title" class="screen-title">El mapa de Lalo</h2>
           <div class="map-top-actions">
+            <button id="map-calendar-btn" type="button" class="icon-btn streak-btn" aria-label="Mi racha y calendario">
+              <span aria-hidden="true">🔥</span>
+              <span id="map-streak-count" class="streak-btn-count" aria-hidden="true">0</span>
+            </button>
             <button id="map-wardrobe-btn" type="button" class="icon-btn" aria-label="Armario de Lalo">
               <span aria-hidden="true">🎨</span>
             </button>
@@ -93,11 +97,27 @@
             <span aria-hidden="true">🗺️</span>
           </button>
           <div class="scores">
+            <!-- Combo: lights up on 3+ correct words in a row (hidden at 0). -->
+            <span id="combo" class="score combo" data-tier="0" hidden aria-label="Racha de palabras">
+              <span aria-hidden="true">🔥</span> <span id="combo-value">0</span>
+            </span>
             <span class="score" aria-label="Estrellas">
               <span aria-hidden="true">⭐</span> <span id="stars-value">0</span>
             </span>
           </div>
         </header>
+
+        <!-- Level progress: one dot per word of the level, filled as the child
+             reads well (no numbers for pre-readers). Built by main.js. -->
+        <div
+          id="level-progress"
+          class="level-progress"
+          role="progressbar"
+          aria-label="Progreso del nivel"
+          aria-valuemin="0"
+          aria-valuemax="10"
+          aria-valuenow="0"
+        ></div>
 
         <!-- The HERO: the reading card fills the available content area (G1). -->
         <!-- Tap = read aloud; swipe left = next (G3). Gestures are additive. -->
@@ -217,6 +237,34 @@
         <div id="garden-canvas" class="garden-canvas" role="list" aria-label="Jardín de Lalo"></div>
       </section>
 
+      <!-- ============ Racha + calendario de práctica ============ -->
+      <section id="calendar-screen" class="screen calendar-screen" aria-labelledby="calendar-title" hidden>
+        <header class="map-top">
+          <button id="calendar-back-btn" type="button" class="icon-btn icon-btn-quiet" aria-label="Volver al mapa">
+            <span aria-hidden="true">🗺️</span>
+          </button>
+          <h2 id="calendar-title" class="screen-title">Mi racha</h2>
+          <span class="spacer" aria-hidden="true"></span>
+        </header>
+        <div class="calendar-card">
+          <div class="streak-summary">
+            <div class="dash-stat"><span class="dash-num" id="cal-streak">0</span><span class="dash-label">Días de racha</span></div>
+            <div class="dash-stat"><span class="dash-num" id="cal-best">0</span><span class="dash-label">Mejor racha</span></div>
+            <div class="dash-stat"><span class="dash-num" id="cal-today">0/10</span><span class="dash-label">Palabras hoy</span></div>
+          </div>
+          <div class="calendar-nav">
+            <button id="cal-prev" type="button" class="cal-nav-btn" aria-label="Mes anterior">‹</button>
+            <h3 id="cal-month" class="cal-month" aria-live="polite">Mes</h3>
+            <button id="cal-next" type="button" class="cal-nav-btn" aria-label="Mes siguiente">›</button>
+          </div>
+          <div class="cal-grid" role="grid" aria-labelledby="cal-month">
+            <div id="cal-weekdays" class="cal-weekdays" role="row"></div>
+            <div id="cal-days" class="cal-days"></div>
+          </div>
+          <p id="cal-footer" class="cal-footer" role="status">0 palabras practicadas · 0 días con meta</p>
+        </div>
+      </section>
+
       <!-- ============ Adult dashboard ============ -->
       <section id="dashboard-screen" class="screen dashboard" aria-labelledby="dashboard-title" hidden>
         <header class="map-top">
@@ -241,8 +289,10 @@
         <div class="dash-stats">
           <div class="dash-stat"><span class="dash-num" id="dash-mastered">0/0</span><span class="dash-label">Palabras dominadas</span></div>
           <div class="dash-stat"><span class="dash-num" id="dash-stars">0</span><span class="dash-label">Estrellas</span></div>
-          <div class="dash-stat"><span class="dash-num" id="dash-streak">0</span><span class="dash-label">Racha</span></div>
-          <div class="dash-stat"><span class="dash-num" id="dash-best">0</span><span class="dash-label">Mejor racha</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-daystreak">0</span><span class="dash-label">Racha de días</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-bestdaystreak">0</span><span class="dash-label">Mejor racha de días</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-streak">0</span><span class="dash-label">Aciertos seguidos</span></div>
+          <div class="dash-stat"><span class="dash-num" id="dash-best">0</span><span class="dash-label">Mejor serie de aciertos</span></div>
           <div class="dash-stat"><span class="dash-num" id="dash-stickers">0</span><span class="dash-label">Pegatinas</span></div>
         </div>
 
@@ -313,11 +363,28 @@
               <option value="20">20</option>
             </select>
           </label>
+          <!-- Daily streak goal: words read well per day to earn a streak day. -->
+          <label class="field">
+            <span class="field-label">Palabras al día para la racha</span>
+            <select id="streak-goal" class="select">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="30">30</option>
+              <option value="50">50</option>
+            </select>
+          </label>
           <!-- Background music (iteration 9, D8 / AC-M8): a soft optional melody,
                default OFF, ducks around read-aloud + the mic. -->
           <label class="toggle">
             <input id="music-toggle" type="checkbox" />
             <span>Música de fondo</span>
+          </label>
+          <!-- Spoken praise: Lalo says the praise aloud. Default OFF. -->
+          <label class="toggle">
+            <input id="praisevoice-toggle" type="checkbox" />
+            <span>Lalo habla los elogios</span>
           </label>
           <button id="reset-btn" type="button" class="btn btn-danger" aria-label="Borrar todo el progreso">
             Borrar progreso <span aria-hidden="true">🗑️</span>

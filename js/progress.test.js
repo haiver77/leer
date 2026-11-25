@@ -219,3 +219,13 @@ test("AC-M1: migrate replaces a structurally invalid stored lalo with the defaul
   // a non-boolean music coerces to the default OFF
   assert.equal(migrate({ version: 2, music: "yes" }).music, false);
 });
+
+// ---- Spoken praise setting (adult-enabled, default OFF) ---------------------
+
+test("praiseVoice defaults OFF and migrates safely from older states", () => {
+  assert.equal(freshState().praiseVoice, false, "fresh state: OFF");
+  assert.equal(migrate({ version: 2, wordsPerLevel: 8 }).praiseVoice, false, "missing → OFF");
+  assert.equal(migrate({ version: 2, praiseVoice: "yes" }).praiseVoice, false, "non-boolean → OFF");
+  assert.equal(migrate({ version: 2, praiseVoice: true }).praiseVoice, true, "saved true kept");
+  assert.equal(migrate({ bestStreak: 3 }).praiseVoice, false, "v1 → OFF");
+});

@@ -535,3 +535,63 @@ test("difficulty_rank is strictly ascending, unique, and equals row order (AC-H1
     assert.equal(new Set(ranks).size, ranks.length, `${name}: ranks unique`);
   }
 });
+
+// ===========================================================================
+// Iteration 10 — kind ("closed"/"digraph") + chunk selectors, ~10-15 per unit
+// ===========================================================================
+
+test("forBand kind: closed ∪ digraph == special:true, and the two are disjoint (2 and 3 syllables)", () => {
+  for (const count of [2, 3]) {
+    const special = forBand({ count, special: true }).map((w) => w.word).sort();
+    const closed = forBand({ count, kind: "closed" }).map((w) => w.word);
+    const digraph = forBand({ count, kind: "digraph" }).map((w) => w.word);
+    assert.equal(closed.filter((w) => digraph.includes(w)).length, 0, `count ${count}: kinds are disjoint`);
+    assert.deepEqual([...closed, ...digraph].sort(), special, `count ${count}: union equals especiales`);
+  }
+});
+
+test("forBand chunk: parts are contiguous, disjoint, near-equal and their union is the whole band", () => {
+  const specs = [
+    { count: 2, tiers: [1], special: false },
+    { count: 2, tiers: [3], special: false },
+    { count: 2, kind: "closed" },
+    { count: 3, tiers: [1, 2], special: false },
+    { count: 3, tiers: [3], special: false },
+    { count: 3, kind: "digraph" },
+  ];
+  for (const spec of specs) {
+    const whole = forBand(spec).map((w) => w.word);
+    for (const of of [2, 3]) {
+      const parts = Array.from({ length: of }, (_, i) =>
+        forBand({ ...spec, chunk: { i, of } }).map((w) => w.word)
+      );
+      assert.deepEqual(parts.flat(), whole, `${JSON.stringify(spec)} /${of}: concat equals the band in order`);
+      const sizes = parts.map((p) => p.length);
+      assert.ok(Math.max(...sizes) - Math.min(...sizes) <= 1, `${JSON.stringify(spec)} /${of}: near-equal sizes ${sizes}`);
+    }
+  }
+});
+
+test("new units: every 2- and 3-syllable unit of the map has 10-15 words (fallback and live CSV)", async () => {
+  const { all } = await import("./levels.js");
+  for (const l of all()) {
+    if (l.id.startsWith("pal-4-")) continue;
+    const n = l.pool().length;
+    assert.ok(n >= 10 && n <= 15, `${l.id} has ${n} words (want 10-15)`);
+  }
+});
+
+test("iteration-10 vocabulary: 97 two-syllable and 100 three-syllable words, all with art", () => {
+  const two = parseCsv(readData("words-2syllables.csv"));
+  const three = parseCsv(readData("words-3syllables.csv"));
+  assert.equal(two.length, 97);
+  assert.equal(three.length, 100);
+  for (const w of ["oso", "playa", "zorro", "carta", "falda"]) {
+    assert.ok(two.some((r) => r.word === w), `2-syllable CSV has ${w}`);
+  }
+  for (const w of ["paleta", "escuela", "lechuga", "familia"]) {
+    assert.ok(three.some((r) => r.word === w), `3-syllable CSV has ${w}`);
+  }
+  assert.equal(new Set(two.map((r) => r.word)).size, two.length, "no duplicate 2-syllable words");
+  assert.equal(new Set(three.map((r) => r.word)).size, three.length, "no duplicate 3-syllable words");
+});

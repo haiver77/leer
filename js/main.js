@@ -22,6 +22,7 @@ const screens = {
   stickers: el("stickers-screen"),
   wardrobe: el("wardrobe-screen"),
   garden: el("garden-screen"),
+  calendar: el("calendar-screen"),
   dashboard: el("dashboard-screen"),
 };
 
@@ -63,8 +64,33 @@ const gardenBackBtn = el("garden-back-btn");
 const gardenCanvas = el("garden-canvas");
 const gardenSummary = el("garden-summary");
 
+// Racha + calendario
+const mapCalendarBtn = el("map-calendar-btn");
+const mapStreakCount = el("map-streak-count");
+const calendarBackBtn = el("calendar-back-btn");
+const calPrev = el("cal-prev");
+const calNext = el("cal-next");
+const calMonth = el("cal-month");
+const calWeekdays = el("cal-weekdays");
+const calDays = el("cal-days");
+const calFooter = el("cal-footer");
+const calStreak = el("cal-streak");
+const calBest = el("cal-best");
+const calToday = el("cal-today");
+const dashDayStreak = el("dash-daystreak");
+const dashBestDayStreak = el("dash-bestdaystreak");
+const streakGoalSelect = el("streak-goal");
+// Month currently shown in the calendar (0-based month); reset on each open.
+let calView = { year: new Date().getFullYear(), month: new Date().getMonth() };
+
 // Música de fondo (D8)
 const musicToggle = el("music-toggle");
+
+// Motivación: combo + barra de progreso del nivel + voz de elogios
+const comboBadge = el("combo");
+const comboValue = el("combo-value");
+const levelProgress = el("level-progress");
+const praiseVoiceToggle = el("praisevoice-toggle");
 
 const itemArt = el("item-art");
 const cardHost = el("card-host");
@@ -213,6 +239,9 @@ function renderView(view) {
     case "garden":
       renderGarden(view);
       break;
+    case "calendar":
+      renderCalendar(view);
+      break;
     case "dashboard":
       renderDashboard();
       break;
@@ -238,6 +267,8 @@ function renderMap(view) {
   const pct = g.target ? Math.round((g.progress / g.target) * 100) : 0;
   dailyFill.style.width = `${Math.min(100, pct)}%`;
   el("daily-goal").setAttribute("aria-label", `Meta de hoy: ${g.progress} de ${g.target}`);
+
+  if (mapStreakCount) mapStreakCount.textContent = String(view.dayStreak || 0);
 
   mapGrid.innerHTML = "";
   for (const node of view.map) {
@@ -268,8 +299,60 @@ function renderMap(view) {
   }
 }
 
+// Last filled-dot count, so only the newly filled dot plays its pop animation.
+let lastFilledDots = 0;
+
+/**
+ * Level progress: one dot per word of the level goal (5..20), filled as words
+ * are read well; the last dot is a special star. Rebuilt only when the number
+ * of dots changes. No numbers on screen (pre-readers); exposed to assistive
+ * tech through role=progressbar.
+ */
+function renderLevelProgress(view) {
+  if (!levelProgress) return;
+  const goal = Math.max(0, view.levelGoal || 0);
+  const filled = Math.max(0, Math.min(goal, view.levelCorrect || 0));
+  if (levelProgress.children.length !== goal) {
+    levelProgress.innerHTML = "";
+    for (let i = 0; i < goal; i += 1) {
+      const dot = document.createElement("span");
+      dot.className = "progress-dot";
+      dot.setAttribute("aria-hidden", "true");
+      if (i === goal - 1) dot.dataset.last = "true";
+      levelProgress.appendChild(dot);
+    }
+    lastFilledDots = 0;
+  }
+  const changed = filled !== lastFilledDots;
+  [...levelProgress.children].forEach((dot, i) => {
+    dot.dataset.filled = String(i < filled);
+    // Pop only the dot(s) that just filled; leave classes alone on re-renders
+    // where nothing changed so the animation is not cut short.
+    if (changed) dot.classList.toggle("progress-dot-pop", i < filled && i >= lastFilledDots);
+  });
+  lastFilledDots = filled;
+  levelProgress.setAttribute("aria-valuemax", String(goal));
+  levelProgress.setAttribute("aria-valuenow", String(filled));
+  levelProgress.setAttribute("aria-valuetext", `${filled} de ${goal} palabras`);
+}
+
+// Combo badge: shown from a run of 3; the tier drives its size/colour in CSS and
+// Lalo's companion gets the same tier so he cheers harder as the run grows.
+function renderCombo(view) {
+  const tier = view.comboTier || 0;
+  if (comboBadge) {
+    comboBadge.hidden = tier === 0;
+    comboBadge.dataset.tier = String(tier);
+    if (comboValue) comboValue.textContent = String(view.combo || 0);
+  }
+  const host = el("game-mascot");
+  if (host) host.dataset.tier = String(tier);
+}
+
 function renderPlay(view) {
   starsValue.textContent = String(view.stars);
+  renderLevelProgress(view);
+  renderCombo(view);
 
   // art cue for the current word (words-only; D1)
   const def = view.level;
@@ -312,9 +395,11 @@ const LEVEL_THEMES = {
   "pal-2-abiertas-1": "meadow",
   "pal-2-abiertas-2": "sky",
   "pal-2-abiertas-3": "forest",
+  "pal-2-cerradas": "twilight",
   "pal-2-especiales": "sunset",
   "pal-3-abiertas-1": "jungle",
   "pal-3-abiertas-2": "desert",
+  "pal-3-cerradas": "sea",
   "pal-3-especiales": "twilight",
   "pal-4-abiertas": "sea",
   "pal-4-especiales": "space",
@@ -345,10 +430,14 @@ const CARD_THEMES = {
   "pal-2-abiertas-1": { tint: "#ffe3ee", accent: "#ff2d78" },
   "pal-2-abiertas-2": { tint: "#e0f4fd", accent: "#0ea5d8" },
   "pal-2-abiertas-3": { tint: "#dcf7ef", accent: "#06b47f" },
+  "pal-2-cerradas": { tint: "#fde8d4", accent: "#e07a1f" },
   "pal-2-especiales": { tint: "#fff1cf", accent: "#f08a00" },
   // 3-syllable bands (split open into two + especiales)
+  // (sibling units such as "pal-2-abiertas-1b" / "pal-2-cerradas-b" /
+  // "pal-3-especiales-b" inherit their family via the prefix match below)
   "pal-3-abiertas-1": { tint: "#ffe6db", accent: "#e0501f" },
   "pal-3-abiertas-2": { tint: "#ffeccf", accent: "#f3722c" },
+  "pal-3-cerradas": { tint: "#e9e0fa", accent: "#7b4bd1" },
   "pal-3-especiales": { tint: "#efe3fb", accent: "#8338ec" },
   // 4-syllable bands (the big finale)
   "pal-4-abiertas": { tint: "#d9eef5", accent: "#277da1" },
@@ -537,8 +626,115 @@ function renderGarden(view) {
   }
 }
 
+// ---- Racha + calendario de práctica ----
+const MONTHS_ES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+const WEEKDAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+function renderCalendar(view) {
+  const now = new Date();
+  const { year, month } = calView;
+  const data = game.calendarMonth(year, month);
+
+  calStreak.textContent = String(view.dayStreak || 0);
+  calBest.textContent = String(game.dashboardStats().bestDayStreak || 0);
+  const todayCount = (game.state.progress.history || {})[
+    progressKey(now)
+  ] || 0;
+  calToday.textContent = `${todayCount}/${view.streakGoal}`;
+
+  calMonth.textContent = `${MONTHS_ES[month]} ${year}`;
+
+  // Navigation bounds: no future months; no months before the first practice
+  // (but always allow going back at least to the previous month).
+  const isCurrent = year === now.getFullYear() && month === now.getMonth();
+  const first = game.firstPracticeMonth();
+  const minIdx = first
+    ? Math.min(first.year * 12 + first.month, now.getFullYear() * 12 + now.getMonth() - 1)
+    : now.getFullYear() * 12 + now.getMonth() - 1;
+  calNext.disabled = isCurrent;
+  calPrev.disabled = year * 12 + month <= minIdx;
+
+  calWeekdays.innerHTML = "";
+  for (const w of WEEKDAYS_ES) {
+    const h = document.createElement("span");
+    h.className = "cal-weekday";
+    h.setAttribute("role", "columnheader");
+    h.textContent = w;
+    calWeekdays.appendChild(h);
+  }
+
+  calDays.innerHTML = "";
+  for (const week of data.weeks) {
+    const row = document.createElement("div");
+    row.className = "cal-week";
+    row.setAttribute("role", "row");
+    for (const c of week) {
+      const cell = document.createElement("div");
+      cell.className = "cal-day";
+      cell.setAttribute("role", "gridcell");
+      cell.dataset.inMonth = String(c.inMonth);
+      cell.dataset.goal = String(c.goalMet);
+      cell.dataset.today = String(c.isToday);
+      cell.dataset.future = String(c.isFuture);
+      if (c.inMonth) {
+        cell.innerHTML = `
+          <span class="cal-day-num">${c.day}</span>
+          <span class="cal-day-count">${c.count}</span>`;
+        cell.setAttribute(
+          "aria-label",
+          `${c.day} de ${MONTHS_ES[month]}: ${c.count} ${c.count === 1 ? "palabra" : "palabras"}` +
+            (c.goalMet ? ", meta cumplida" : "")
+        );
+        if (c.isToday) cell.setAttribute("aria-current", "date");
+      } else {
+        cell.innerHTML = `<span class="cal-day-num">${c.day}</span>`;
+        cell.setAttribute("aria-hidden", "true");
+      }
+      row.appendChild(cell);
+    }
+    calDays.appendChild(row);
+  }
+
+  calFooter.textContent =
+    `${data.totalWords} ${data.totalWords === 1 ? "palabra practicada" : "palabras practicadas"}` +
+    ` · ${data.goalDays} ${data.goalDays === 1 ? "día con meta" : "días con meta"}`;
+}
+
+function progressKey(d) {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+function shiftCalendar(delta) {
+  const d = new Date(calView.year, calView.month + delta, 1);
+  calView = { year: d.getFullYear(), month: d.getMonth() };
+  game.render();
+}
+
+function openCalendar() {
+  const now = new Date();
+  calView = { year: now.getFullYear(), month: now.getMonth() };
+  game.goCalendar();
+}
+
 function renderDashboard() {
   const stats = game.dashboardStats();
+  dashDayStreak.textContent = String(stats.dayStreak);
+  dashBestDayStreak.textContent = String(stats.bestDayStreak);
+  if (streakGoalSelect) {
+    const v = String(stats.streakGoal);
+    if (![...streakGoalSelect.options].some((o) => o.value === v)) {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      streakGoalSelect.appendChild(opt);
+    }
+    streakGoalSelect.value = v;
+  }
   // Spanish-voice notice (AC-I2.5): visible only when no Spanish voice exists.
   if (voiceNotice) voiceNotice.hidden = !stats.noSpanishVoice;
   dashMastered.textContent = `${stats.mastered}/${stats.total}`;
@@ -556,6 +752,9 @@ function renderDashboard() {
 
   // Auto-read toggle (D7 / AC-K7) reflects the persisted setting.
   if (autoReadToggle) autoReadToggle.checked = Boolean(stats.autoRead);
+
+  // Spoken-praise toggle reflects the persisted setting (default OFF).
+  if (praiseVoiceToggle) praiseVoiceToggle.checked = Boolean(stats.praiseVoice);
 
   // Background-music toggle (D8 / AC-M8) reflects the persisted setting.
   if (musicToggle) musicToggle.checked = Boolean(stats.music);
@@ -623,6 +822,13 @@ mapStickersBtn.addEventListener("click", () => game.goStickers());
 mapDashBtn.addEventListener("click", openDashboardGated);
 if (mapWardrobeBtn) mapWardrobeBtn.addEventListener("click", () => game.goWardrobe());
 if (mapGardenBtn) mapGardenBtn.addEventListener("click", () => game.goGarden());
+if (mapCalendarBtn) mapCalendarBtn.addEventListener("click", openCalendar);
+if (calendarBackBtn) calendarBackBtn.addEventListener("click", () => game.goMap());
+if (calPrev) calPrev.addEventListener("click", () => shiftCalendar(-1));
+if (calNext) calNext.addEventListener("click", () => shiftCalendar(1));
+if (streakGoalSelect) {
+  streakGoalSelect.addEventListener("change", (e) => game.setStreakGoal(Number(e.target.value)));
+}
 if (wardrobeBackBtn) wardrobeBackBtn.addEventListener("click", () => game.goMap());
 if (gardenBackBtn) gardenBackBtn.addEventListener("click", () => game.goMap());
 
@@ -638,6 +844,9 @@ diffNormal.addEventListener("click", () => game.setDifficulty("normal"));
 veryYoungToggle.addEventListener("change", (e) => game.setVeryYoung(e.target.checked));
 if (autoReadToggle) {
   autoReadToggle.addEventListener("change", (e) => game.setAutoRead(e.target.checked));
+}
+if (praiseVoiceToggle) {
+  praiseVoiceToggle.addEventListener("change", (e) => game.setPraiseVoice(e.target.checked));
 }
 if (voiceSelect) {
   // "" (Automática) maps to null; any other value is a stable voiceId.

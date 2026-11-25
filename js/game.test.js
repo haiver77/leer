@@ -256,6 +256,254 @@ test("AC-M1.5: setLaloCustomization sanitizes locked items + persists the clean 
   assert.equal(typeof sel.color, "string");
 });
 
+// ===========================================================================
+// Motivación durante la práctica: elogio adaptativo, combo, "juntos", barra
+// de progreso y voz opcional de elogios.
+// ===========================================================================
+
+/** Game with recognition forced ON (Node's speech.listen resolves a miss). */
+const micGames = [];
+/** Leave play on every mic game so no pending auto-listen keeps re-arming. */
+function stopMicGames() {
+  while (micGames.length) micGames.pop().goMap();
+}
+
+function makeMicGame() {
+  const events = { mascot: [], feedback: [], renders: 0 };
+  const game = createGame(
+    {
+      onRender: () => {
+        events.renders += 1;
+      },
+      onFeedback: (msg, kind) => events.feedback.push({ msg, kind }),
+      onMascot: (s) => events.mascot.push(s),
+    },
+    { recognitionSupported: true }
+  );
+  micGames.push(game);
+  return { game, events };
+}
+
+const lastFeedback = (events) => events.feedback[events.feedback.length - 1];
+
+test("first-try success shows a praise phrase (never the old fixed text only) and counts a combo", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game, events } = makeGame();
+    game.openLevel(game.view().map[0].id);
+    game.confirmSaid();
+    assert.equal(lastFeedback(events).kind, "success");
+    assert.ok(lastFeedback(events).msg.length > 0);
+    assert.equal(game.view().combo, 1);
+    assert.equal(game.view().comboTier, 0);
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
+test("combo grows with consecutive successes and reaches tier 1 at 3", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game } = makeGame();
+    game.openLevel(game.view().map[0].id);
+    for (let i = 0; i < 3; i += 1) {
+      game.confirmSaid();
+      mock.timers.tick(1200);
+    }
+    assert.equal(game.view().combo, 3);
+    assert.equal(game.view().comboTier, 1);
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
+test("a miss gently breaks the combo, never the lifetime streak, and re-listens", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game, events } = makeMicGame();
+    game.openLevel(game.view().map[0].id);
+    game.confirmSaid();
+    mock.timers.tick(1200);
+    const streakBefore = game.state.progress.streak;
+    assert.equal(game.view().combo, 1);
+
+    await game.listenAttempt(); // Node: resolves a miss
+    assert.equal(game.view().combo, 0, "combo reset on a miss");
+    assert.equal(game.state.progress.streak, streakBefore, "lifetime streak untouched");
+    assert.equal(lastFeedback(events).kind, "retry");
+    assert.equal(game.state.missesOnCurrent, 1);
+  } finally {
+    stopMicGames(); // cancel pending auto-listen so no real timer loops on
+    mock.timers.reset();
+  }
+});
+
+test("after 2 misses Lalo models the word and says 'juntos'; a later success is 'recovered'", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game, events } = makeMicGame();
+    game.openLevel(game.view().map[0].id);
+    events.mascot.length = 0;
+
+    await game.listenAttempt();
+    await game.listenAttempt();
+    assert.equal(game.state.missesOnCurrent, 2);
+    assert.ok(/junt/i.test(lastFeedback(events).msg), `got: ${lastFeedback(events).msg}`);
+    assert.ok(events.mascot.includes("model"), "Lalo modeled the word");
+
+    game.confirmSaid();
+    assert.equal(lastFeedback(events).kind, "success");
+    const recoveredPhrases = [
+      "¡Lo lograste! 💪",
+      "¡Seguiste y lo lograste! 🌟",
+      `¡${game.state.current}! ¡Eres valiente! 💪`,
+      "¡Ahora sí! 🎉",
+      "¡Qué bien insistes! 👏",
+    ];
+    assert.ok(
+      recoveredPhrases.includes(lastFeedback(events).msg) ||
+        /Racha de/.test(lastFeedback(events).msg),
+      `unexpected praise: ${lastFeedback(events).msg}`
+    );
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
+test("repeated misses never master a word (mastery needs verified successes)", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game } = makeMicGame();
+    game.openLevel(game.view().map[0].id);
+    const id = game.state.current;
+    await game.listenAttempt();
+    await game.listenAttempt();
+    await game.listenAttempt();
+    game.confirmSaid(); // unverified
+    const rec = game.state.progress.items[id];
+    assert.equal(rec.verifiedCorrect, 0);
+    assert.equal(rec.mastered, false);
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
+test("a word that just reached mastery gets the 'mastered' praise", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game, events } = makeGame();
+    game.openLevel(game.view().map[0].id);
+    const id = game.state.current;
+    game.state.progress.items[id].verifiedCorrect = 3; // threshold reached
+    game.state.progress.items[id].mastered = false; // ...but not flipped yet
+    game.confirmSaid();
+    assert.equal(game.state.progress.items[id].mastered, true);
+    const mastered = [
+      "¡Ya la dominas! 🏆",
+      `¡${id} es tuya! 🏆`,
+      "¡Palabra dominada! 🌟",
+      "¡Eres un campeón! 🏆",
+    ];
+    // day-streak text may take priority only when the daily goal is hit now.
+    assert.ok(
+      mastered.includes(lastFeedback(events).msg) || /Racha de/.test(lastFeedback(events).msg),
+      `got: ${lastFeedback(events).msg}`
+    );
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
+test("progress bar data: levelGoal dots, levelCorrect filled, reset on a new level", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game } = makeGame();
+    game.setWordsPerLevel(5);
+    const first = game.view().map[0].id;
+    game.openLevel(first);
+    assert.equal(game.view().levelGoal, 5);
+    assert.equal(game.view().levelCorrect, 0);
+    game.confirmSaid();
+    mock.timers.tick(1200);
+    assert.equal(game.view().levelCorrect, 1);
+    game.setWordsPerLevel(12);
+    game.openLevel(first);
+    assert.equal(game.view().levelGoal, 12);
+    assert.equal(game.view().levelCorrect, 0);
+    assert.equal(game.view().combo, 0, "combo resets with the level");
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
+test("praiseVoice is OFF by default and toggles via setPraiseVoice", () => {
+  const { game } = makeGame();
+  assert.equal(game.dashboardStats().praiseVoice, false);
+  game.setPraiseVoice(true);
+  assert.equal(game.dashboardStats().praiseVoice, true);
+  game.setPraiseVoice(0);
+  assert.equal(game.dashboardStats().praiseVoice, false);
+});
+
+test("voice OFF: success advances on the normal timer (nothing is spoken/awaited)", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game } = makeGame();
+    game.openLevel(game.view().map[0].id);
+    const before = game.state.current;
+    game.confirmSaid();
+    mock.timers.tick(1200);
+    assert.notEqual(game.state.current, before, "advanced to a new word");
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
+test("voice ON without TTS available: still advances (no hang) after the praise resolves", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game } = makeGame();
+    game.setPraiseVoice(true);
+    game.openLevel(game.view().map[0].id);
+    const before = game.state.current;
+    game.confirmSaid();
+    mock.timers.tick(1200);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.notEqual(game.state.current, before, "advanced after the (no-op) praise");
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
+test("voice ON: leaving the level while praise is pending never advances a stale screen", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { game } = makeGame();
+    game.setPraiseVoice(true);
+    game.openLevel(game.view().map[0].id);
+    game.confirmSaid();
+    game.goMap(); // navigate away before the advance fires
+    mock.timers.tick(1200);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(game.state.phase, "map", "still on the map");
+  } finally {
+    stopMicGames();
+    mock.timers.reset();
+  }
+});
+
 test("gardenState exposes an ordered, flagged garden for the current progress", () => {
   const { game } = makeGame();
   const g = game.gardenState();

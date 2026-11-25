@@ -54,12 +54,18 @@ export function effectiveGoal(poolSize, wordsPerLevel) {
  * items to their `.word` strings at call-time so a late CSV load is picked up.
  */
 const WORD_BANDS = [
-  // ---- 2-syllable bands (easiest first) ----
+  // ---- 2-syllable bands (easiest first; ~9-15 words per unit) ----
   {
     id: "pal-2-abiertas-1",
     title: "¡Primeros pasos!",
     artId: "island-words-2-1",
-    band: { count: 2, tiers: [1], special: false },
+    band: { count: 2, tiers: [1], special: false, chunk: { i: 0, of: 2 } },
+  },
+  {
+    id: "pal-2-abiertas-1b",
+    title: "¡Más primeros pasos!",
+    artId: "island-words-2-1b",
+    band: { count: 2, tiers: [1], special: false, chunk: { i: 1, of: 2 } },
   },
   {
     id: "pal-2-abiertas-2",
@@ -71,32 +77,80 @@ const WORD_BANDS = [
     id: "pal-2-abiertas-3",
     title: "¡Más aventuras!",
     artId: "island-words-2-3",
-    band: { count: 2, tiers: [3], special: false },
+    band: { count: 2, tiers: [3], special: false, chunk: { i: 0, of: 2 } },
+  },
+  {
+    id: "pal-2-abiertas-3b",
+    title: "¡Aventuras sin fin!",
+    artId: "island-words-2-3b",
+    band: { count: 2, tiers: [3], special: false, chunk: { i: 1, of: 2 } },
+  },
+  {
+    id: "pal-2-cerradas",
+    title: "¡Sílabas con cola!",
+    artId: "island-words-2-cer",
+    band: { count: 2, kind: "closed", chunk: { i: 0, of: 2 } },
+  },
+  {
+    id: "pal-2-cerradas-b",
+    title: "¡Más sílabas con cola!",
+    artId: "island-words-2-cer-b",
+    band: { count: 2, kind: "closed", chunk: { i: 1, of: 2 } },
   },
   {
     id: "pal-2-especiales",
     title: "¡Sonidos mágicos!",
     artId: "island-words-2-esp",
-    band: { count: 2, special: true },
+    band: { count: 2, kind: "digraph" },
   },
-  // ---- 3-syllable bands (split open into tiers 1–2 then tier 3) ----
+  // ---- 3-syllable bands (open tiers 1–2, open tier 3, closed, especiales) ----
   {
     id: "pal-3-abiertas-1",
     title: "¡La jungla de sílabas!",
     artId: "island-words-3-1",
-    band: { count: 3, tiers: [1, 2], special: false },
+    band: { count: 3, tiers: [1, 2], special: false, chunk: { i: 0, of: 2 } },
+  },
+  {
+    id: "pal-3-abiertas-1b",
+    title: "¡Selva de palabras!",
+    artId: "island-words-3-1b",
+    band: { count: 3, tiers: [1, 2], special: false, chunk: { i: 1, of: 2 } },
   },
   {
     id: "pal-3-abiertas-2",
     title: "¡Palabras cohete!",
     artId: "island-words-3-2",
-    band: { count: 3, tiers: [3], special: false },
+    band: { count: 3, tiers: [3], special: false, chunk: { i: 0, of: 3 } },
+  },
+  {
+    id: "pal-3-abiertas-2b",
+    title: "¡Cohetes veloces!",
+    artId: "island-words-3-2b",
+    band: { count: 3, tiers: [3], special: false, chunk: { i: 1, of: 3 } },
+  },
+  {
+    id: "pal-3-abiertas-2c",
+    title: "¡Hasta las estrellas!",
+    artId: "island-words-3-2c",
+    band: { count: 3, tiers: [3], special: false, chunk: { i: 2, of: 3 } },
+  },
+  {
+    id: "pal-3-cerradas",
+    title: "¡Sílabas con cola grande!",
+    artId: "island-words-3-cer",
+    band: { count: 3, kind: "closed" },
   },
   {
     id: "pal-3-especiales",
     title: "¡Tesoros escondidos!",
     artId: "island-words-3-esp",
-    band: { count: 3, special: true },
+    band: { count: 3, kind: "digraph", chunk: { i: 0, of: 2 } },
+  },
+  {
+    id: "pal-3-especiales-b",
+    title: "¡Más tesoros!",
+    artId: "island-words-3-esp-b",
+    band: { count: 3, kind: "digraph", chunk: { i: 1, of: 2 } },
   },
   // ---- 4-syllable bands (the big finale) ----
   {

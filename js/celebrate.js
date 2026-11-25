@@ -200,11 +200,14 @@ let variationIndex = 0;
  * Play the full celebration. Honors prefers-reduced-motion by skipping the
  * confetti animation (sound + haptics still fire as non-motion feedback).
  *
- * @param {{milestone?: boolean}} [opts] milestone fires a bigger fanfare+burst
+ * @param {{milestone?: boolean, tier?: number}} [opts] milestone fires a bigger
+ *   fanfare+burst; `tier` (0..3, combo intensity) grows the burst (bounded) and
+ *   from tier 2 uses the brighter fanfare.
  */
 export function play(opts = {}) {
   const milestone = Boolean(opts.milestone);
-  if (milestone) {
+  const tier = Math.max(0, Math.min(3, Math.floor(Number(opts.tier)) || 0));
+  if (milestone || tier >= 2) {
     playFanfare();
   } else {
     playChime();
@@ -216,10 +219,16 @@ export function play(opts = {}) {
   // already fired as the non-motion feedback.
   const hasDom = typeof document !== "undefined";
   if (hasDom && !prefersReducedMotion()) {
-    const v = milestone
+    const base = milestone
       ? { originY: 0.3, count: 220, spread: 1.4 }
       : VARIATIONS[variationIndex % VARIATIONS.length];
     variationIndex += 1;
+    // Combo tiers add particles + reach, capped so it stays 60fps-friendly.
+    const v = {
+      ...base,
+      count: Math.min(300, Math.round(base.count * (1 + 0.2 * tier))),
+      spread: base.spread * (1 + 0.08 * tier),
+    };
     burstConfetti(v);
   }
 }

@@ -13,6 +13,7 @@ import * as words from "./words.js";
 import * as audio from "./audio.js";
 import * as customize from "./customize.js";
 import * as garden from "./garden.js";
+import * as praise from "./praise.js";
 
 const ADVANCE_DELAY_MS = 1200;
 
@@ -27,6 +28,10 @@ const IDLE_SLEEP_MS = 12000;
 // re-listen storm (AC-L2.6).
 const AUTO_LISTEN_SAFETY_MS = 4500;
 const AUTO_LISTEN_RETRY_MS = 500;
+
+// After this many misses on the same word Lalo reads it and says "¡Digámosla
+// juntos!" (low-pressure help); a later success is celebrated as "recovered".
+const TOGETHER_AFTER_MISSES = 2;
 
 /**
  * Pick a random pool member, never equal to `exclude` (prevents immediate
@@ -117,6 +122,13 @@ export function createGame(handlers, deps = {}) {
     lastVerified: false, // whether last success was mic-verified
     // Iteration 9 (D2 / AC-M2.4): idle→sleep bookkeeping (token/cancel pattern).
     sleepToken: 0,
+    // Motivation: consecutive correct words this level (a miss breaks it),
+    // misses on the word currently shown, and a token that invalidates a
+    // pending post-success advance (navigation / skip) so a spoken praise that
+    // resolves late can never advance a stale screen.
+    combo: 0,
+    missesOnCurrent: 0,
+    advanceToken: 0,
   };
 
   let advanceTimer = null;
@@ -141,9 +153,13 @@ export function createGame(handlers, deps = {}) {
       map: levels.mapState(state.progress),
       stickers: rewards.stickerBook(state.progress.stickers),
       dailyGoal: state.progress.dailyGoal,
+      dayStreak: state.progress.dayStreak,
+      streakGoal: state.progress.streakGoal,
       levelCorrect: state.levelCorrect,
       levelStars: state.levelStars,
       levelGoal: state.levelGoal,
+      combo: state.combo,
+      comboTier: praise.comboTier(state.combo),
       autoModelRemaining: state.progress.autoModelRemaining,
       // Iteration 9: customized Lalo (D1), the growing garden (D4), the music
       // toggle (D8), and the active practice mode + its options (D3).
@@ -179,6 +195,7 @@ export function createGame(handlers, deps = {}) {
 
   function goMap() {
     clearTimeout(advanceTimer);
+    state.advanceToken += 1;
     cancelAutoListen(); // leaving play cancels any pending (re-)listen (AC-L2.6)
     cancelSleep(); // leaving play cancels the idle→sleep timer (AC-M2.4)
     state.phase = "map";
@@ -270,6 +287,34 @@ export function createGame(handlers, deps = {}) {
     }, delayMs);
   }
 
+  /** Open the streak calendar (practice history by month). */
+  function goCalendar() {
+    cancelSleep();
+    state.phase = "calendar";
+    render();
+  }
+
+  /**
+   * Calendar data for a month (0-based) from the practice history, using the
+   * current streak goal to flag goal days.
+   */
+  function calendarMonth(year, month) {
+    return progress.monthCalendar(
+      year,
+      month,
+      state.progress.history,
+      state.progress.streakGoal
+    );
+  }
+
+  /** Earliest month with recorded practice as {year, month}, or null. */
+  function firstPracticeMonth() {
+    const keys = Object.keys(state.progress.history).sort();
+    if (!keys.length) return null;
+    const [y, m] = keys[0].split("-").map(Number);
+    return { year: y, month: m - 1 };
+  }
+
   function goStickers() {
     state.phase = "stickers";
     render();
@@ -327,6 +372,8 @@ export function createGame(handlers, deps = {}) {
     if (!levels.isUnlocked(state.progress, levelId)) return; // locked: ignore
 
     clearTimeout(advanceTimer);
+    state.advanceToken += 1;
+    state.combo = 0;
     cancelAutoListen(); // drop any pending listen from a prior level (AC-L2.6)
     cancelSleep(); // reset the idle→sleep timer for the new level (AC-M2.4)
     state.levelId = levelId;
@@ -359,6 +406,8 @@ export function createGame(handlers, deps = {}) {
 
   function nextItem() {
     clearTimeout(advanceTimer);
+    state.advanceToken += 1;
+    state.missesOnCurrent = 0; // a fresh word starts with a clean slate
     cancelAutoListen(); // this presentation gets a fresh listen token (AC-L2.6)
     const next = pickRandom(state.pool, state.current || null);
     state.previous = state.current;
@@ -468,18 +517,24 @@ export function createGame(handlers, deps = {}) {
 
     if (result.outcome === "match") {
       succeed({ verified: true });
-    } else if (result.outcome === "near") {
-      // Gentle near-miss (F9.3): keep the same item, re-model, then re-open the
-      // mic by itself so the child can try again with no tap (AC-L2.5). The
-      // bounded retry delay spaces attempts (AC-L2.6).
-      handlers.onMascot("encourage");
-      handlers.onFeedback("Casi… escucha otra vez 👂", "near");
-      duckForRead(audio.model(state.current));
-      scheduleAutoListen(AUTO_LISTEN_RETRY_MS);
     } else {
-      // Miss: encourage and re-open the mic without a tap (AC-L2.5).
-      handlers.onMascot("encourage");
-      handlers.onFeedback("Inténtalo otra vez 🙂", "retry");
+      // Near-miss (F9.3) or miss: keep the same item, never penalise, and
+      // re-open the mic by itself so the child can try again with no tap
+      // (AC-L2.5). The bounded retry delay spaces attempts (AC-L2.6).
+      const near = result.outcome === "near";
+      state.missesOnCurrent += 1;
+      state.combo = 0; // a miss breaks the run (never the lifetime streak)
+      const together = state.missesOnCurrent >= TOGETHER_AFTER_MISSES;
+      // After repeated misses, lower the pressure: Lalo reads the word and
+      // invites the child to say it together (always modeled).
+      const kind = together ? "together" : near ? "near" : "retry";
+      handlers.onMascot(together ? "model" : "encourage");
+      handlers.onFeedback(
+        praise.pickPraise({ kind, word: state.current }).text,
+        near ? "near" : "retry"
+      );
+      if (together || near) duckForRead(audio.model(state.current));
+      render();
       scheduleAutoListen(AUTO_LISTEN_RETRY_MS);
     }
   }
@@ -493,7 +548,11 @@ export function createGame(handlers, deps = {}) {
   function succeed({ verified }) {
     wakeLalo(); // a success is activity — wake Lalo + re-arm the idle timer
     const id = state.current;
+    const wasMastered = Boolean(state.progress.items[id] && state.progress.items[id].mastered);
     progress.recordAttempt(state.progress, id, { verified, correct: true });
+    const nowMastered = Boolean(state.progress.items[id] && state.progress.items[id].mastered);
+    const missed = state.missesOnCurrent;
+    state.combo += 1;
 
     // stars + streak + daily goal
     const reward = rewards.onCorrect(countLevelCorrectAfter());
@@ -505,26 +564,57 @@ export function createGame(handlers, deps = {}) {
       state.progress.bestStreak = state.progress.streak;
     }
     progress.bumpDailyGoal(state.progress, 1);
+    // Daily streak (racha de días): counts this word toward today's history and
+    // adds a streak day the first time today reaches the adult-set goal.
+    const practice = progress.recordPractice(state.progress);
     state.lastVerified = verified;
     save();
 
     const milestone = reward.milestone;
-    celebrate.play({ milestone });
+    const justMastered = nowMastered && !wasMastered;
+    const recovered = missed > 0;
+
+    // Pick the praise kind from what just happened (most special wins). The
+    // day-streak message keeps the top priority, as before.
+    let kind;
+    if (justMastered) kind = "mastered";
+    else if (milestone) kind = "milestone";
+    else if (recovered) kind = "recovered";
+    else if (praise.comboTier(state.combo) >= 1) kind = "combo";
+    else kind = verified ? "first-try" : "plain";
+    const phrase = praise.pickPraise({ kind, word: id });
+
+    // Celebration intensity: the combo tier, lifted for hard-won moments.
+    let tier = praise.comboTier(state.combo);
+    if (recovered || justMastered) tier = Math.max(tier, 2);
+    celebrate.play({ milestone, tier });
     // Improved success animation (D5 / AC-K5): let the UI pop the hero card in
     // step with the burst. Optional + short, well within ADVANCE_DELAY_MS, so
     // it never delays the auto-advance/read of the next word (AC-K5.3).
     if (typeof handlers.onSuccessPop === "function") handlers.onSuccessPop({ milestone });
     handlers.onMascot("cheer");
-    const base = verified ? "¡Muy bien! 🎉" : "¡Listo! ✅";
-    handlers.onFeedback(milestone ? "¡Increíble! 🌟🌟" : base, "success");
+    const streakText = `¡Racha de ${state.progress.dayStreak} ${
+      state.progress.dayStreak === 1 ? "día" : "días"
+    }! 🔥`;
+    const message = practice.streakAdded ? streakText : phrase.text;
+    handlers.onFeedback(message, "success");
     render();
+
+    // Optional spoken praise: ONLY when the adult enabled it. The promise is
+    // bounded (audio.say never rejects; speech.speak has its own timeout).
+    const spoken = state.progress.praiseVoice
+      ? audio.say(practice.streakAdded ? praise.toSpeech(streakText) : phrase.speech)
+      : null;
+    const token = state.advanceToken;
 
     // Completion uses the effective per-session goal (iteration 8, D3 /
     // AC-L3.3/L3.4) computed from the live words-per-level setting at
     // openLevel(), not the module-load constant.
     const done = state.levelGoal > 0 && state.levelCorrect >= state.levelGoal;
 
-    advanceTimer = setTimeout(() => {
+    const advance = () => {
+      // Stale (navigated away / skipped while the praise was being spoken).
+      if (token !== state.advanceToken || state.phase !== "play") return;
       if (done) {
         completeLevel();
       } else {
@@ -532,6 +622,12 @@ export function createGame(handlers, deps = {}) {
         // (D4). No standing "Di la palabra" prompt anymore (D6 / AC-J6).
         nextItem();
       }
+    };
+    advanceTimer = setTimeout(() => {
+      // Wait for the spoken praise to finish so the next word's auto-read
+      // never cuts it off or overlaps it.
+      if (spoken) spoken.then(advance, advance);
+      else advance();
     }, ADVANCE_DELAY_MS);
   }
 
@@ -655,6 +751,13 @@ export function createGame(handlers, deps = {}) {
     render();
   }
 
+  /** Toggle Lalo's spoken praise (adult setting, default OFF). Persists. */
+  function setPraiseVoice(on) {
+    state.progress.praiseVoice = Boolean(on);
+    save();
+    render();
+  }
+
   /**
    * Set the adult-chosen reading voice (D3 / AC-K3). `id` is a stable voiceId,
    * or null/"" for "Automática". Persists and applies to speech immediately so
@@ -680,9 +783,19 @@ export function createGame(handlers, deps = {}) {
     render();
   }
 
+  /** Set the words/day needed to earn a streak day (clamped, persisted). */
+  function setStreakGoal(n) {
+    state.progress.streakGoal = progress.clampStreakGoal(n);
+    save();
+    render();
+  }
+
   function resetProgress() {
     cancelAutoListen();
     cancelSleep();
+    state.advanceToken += 1;
+    state.combo = 0;
+    state.missesOnCurrent = 0;
     audio.stopMusic(); // stop any background music on reset (AC-M8.3)
     state.progress = progress.reset();
     progress.ensureDailyGoal(state.progress);
@@ -770,6 +883,9 @@ export function createGame(handlers, deps = {}) {
       trouble: progress.troubleItems(state.progress, 2, 5),
       streak: state.progress.streak,
       bestStreak: state.progress.bestStreak,
+      dayStreak: state.progress.dayStreak,
+      bestDayStreak: state.progress.bestDayStreak,
+      streakGoal: state.progress.streakGoal,
       stars: state.progress.stars,
       stickers: state.progress.stickers.length,
       difficulty: state.progress.difficulty,
@@ -779,6 +895,7 @@ export function createGame(handlers, deps = {}) {
       // Iteration 7 settings for the adult panel (D3 / D7).
       autoRead: state.progress.autoRead,
       voicePref: state.progress.voicePref,
+      praiseVoice: state.progress.praiseVoice,
       availableVoices: speech.availableVoices(),
       // Iteration 8 (D3 / AC-L3.2): words-per-level for the Ajustes control.
       wordsPerLevel: state.progress.wordsPerLevel,
@@ -794,6 +911,10 @@ export function createGame(handlers, deps = {}) {
     start,
     goMap,
     goStickers,
+    goCalendar,
+    calendarMonth,
+    firstPracticeMonth,
+    setStreakGoal,
     goDashboard,
     goWardrobe,
     goGarden,
@@ -812,6 +933,7 @@ export function createGame(handlers, deps = {}) {
     setDifficulty,
     setVeryYoung,
     setAutoRead,
+    setPraiseVoice,
     setVoicePref,
     setWordsPerLevel,
     resetProgress,

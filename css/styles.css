@@ -669,6 +669,65 @@ body {
   gap: clamp(8px, 1.6vh, 14px);
 }
 
+/* ---------- Level progress dots + combo badge (motivation) ---------- */
+.level-progress {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 560px;
+  padding: 6px 10px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+.progress-dot {
+  flex: 0 0 auto;
+  width: clamp(14px, 3.6vw, 22px);
+  height: clamp(14px, 3.6vw, 22px);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  border: 2px solid #fff;
+  transition: background 0.25s, transform 0.25s;
+}
+.progress-dot[data-filled="true"] {
+  background: #ffd166;
+  border-color: #fff;
+  box-shadow: 0 0 0 2px rgba(20, 26, 58, 0.25);
+}
+/* The last dot is the level's star: slightly bigger, star-shaped when filled. */
+.progress-dot[data-last="true"] {
+  width: clamp(18px, 4.6vw, 28px);
+  height: clamp(18px, 4.6vw, 28px);
+  border-radius: 6px;
+}
+.progress-dot[data-last="true"][data-filled="true"] {
+  background: #ff2d78;
+}
+.progress-dot.progress-dot-pop {
+  animation: dot-pop 0.5s cubic-bezier(0.2, 1.1, 0.3, 1.4);
+}
+@keyframes dot-pop {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+
+.combo[data-tier="1"] { background: #fff3c4; }
+.combo[data-tier="2"] { background: #ffd166; font-size: 1.55rem; }
+.combo[data-tier="3"] {
+  background: #ff8c5a;
+  font-size: 1.7rem;
+  animation: combo-glow 0.9s ease-in-out infinite alternate;
+}
+@keyframes combo-glow {
+  from { transform: scale(1); }
+  to { transform: scale(1.12); }
+}
+/* Lalo cheers harder as the run grows (tier set by main.js on the host). */
+.mascot-companion[data-tier="2"] .lalo-body { filter: drop-shadow(0 0 8px #ffd166); }
+.mascot-companion[data-tier="3"] .lalo-body { filter: drop-shadow(0 0 14px #ff8c5a); }
+
 /* ---------- Feedback ---------- */
 .feedback {
   font-size: clamp(1.2rem, 5vw, 1.7rem);
@@ -785,6 +844,18 @@ body {
 .map-node[data-id="pal-2-especiales"] { --node-accent: #f08a00; }
 .map-node[data-id="pal-3-abiertas"] { --node-accent: #e0501f; }
 .map-node[data-id="pal-3-especiales"] { --node-accent: #8338ec; }
+/* Iteration 10: split units share their family colour; closed units get their own. */
+.map-node[data-id="pal-2-abiertas-1b"] { --node-accent: #ff2d78; }
+.map-node[data-id="pal-2-abiertas-3b"] { --node-accent: #06b47f; }
+.map-node[data-id="pal-2-cerradas"],
+.map-node[data-id="pal-2-cerradas-b"] { --node-accent: #e07a1f; }
+.map-node[data-id="pal-3-abiertas-1"],
+.map-node[data-id="pal-3-abiertas-1b"] { --node-accent: #e0501f; }
+.map-node[data-id="pal-3-abiertas-2"],
+.map-node[data-id="pal-3-abiertas-2b"],
+.map-node[data-id="pal-3-abiertas-2c"] { --node-accent: #f3722c; }
+.map-node[data-id="pal-3-cerradas"] { --node-accent: #7b4bd1; }
+.map-node[data-id="pal-3-especiales-b"] { --node-accent: #8338ec; }
 
 .map-node:hover {
   transform: translateY(-3px);
@@ -1319,8 +1390,13 @@ body.very-young .dashboard .feedback {
   .map-node[data-state="completed"] {
     animation: none;
   }
-  .btn-speak.is-listening {
+  .btn-speak.is-listening,
+  .progress-dot.progress-dot-pop,
+  .combo[data-tier="3"] {
     animation: none;
+  }
+  .progress-dot {
+    transition: none;
   }
   .btn:active,
   .map-node:active,
@@ -1678,3 +1754,255 @@ body.very-young .dashboard .feedback {
 
 /* ---------- Reduced motion: disable the trail connector shimmer + ambient
    already handled above; nothing else needed. ---------- */
+
+/* ---------- Racha + calendario de práctica ---------- */
+.streak-btn {
+  position: relative;
+}
+.streak-btn-count {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.calendar-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: clamp(12px, 3vw, 22px);
+  box-shadow: var(--shadow);
+}
+.streak-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.cal-month {
+  margin: 0;
+  font-size: clamp(1.2rem, 4vw, 1.7rem);
+  color: var(--ink);
+}
+.cal-nav-btn {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  font-size: 1.8rem;
+  font-weight: 800;
+  border-radius: 14px;
+  border: 2px solid var(--next);
+  background: #fff;
+  color: var(--next);
+  cursor: pointer;
+}
+.cal-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--locked);
+  color: var(--locked);
+}
+.cal-weekdays,
+.cal-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-days {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.cal-weekday {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.cal-day {
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 2px solid #d5dcf2;
+  background: #f4f6ff;
+  padding: 2px;
+}
+.cal-day[data-in-month="false"] {
+  background: #fff;
+  border-color: #e6e9f5;
+  color: var(--locked);
+  font-size: 0.8rem;
+}
+.cal-day-num {
+  font-weight: 800;
+  font-size: 1rem;
+}
+.cal-day-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.cal-day[data-goal="true"] {
+  background: #d9f7ec;
+  border-color: var(--success);
+}
+.cal-day[data-goal="true"] .cal-day-count {
+  color: #046b50;
+}
+.cal-day[data-today="true"] {
+  border-color: var(--next);
+  box-shadow: 0 0 0 2px var(--next);
+}
+.cal-day[data-future="true"] .cal-day-count {
+  visibility: hidden;
+}
+.cal-footer {
+  margin: 12px 0 0;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+/* ---------- Racha + calendario de pr�ctica ---------- */
+.streak-btn {
+  position: relative;
+}
+.streak-btn-count {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.calendar-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: clamp(12px, 3vw, 22px);
+  box-shadow: var(--shadow);
+}
+.streak-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.cal-month {
+  margin: 0;
+  font-size: clamp(1.2rem, 4vw, 1.7rem);
+  color: var(--ink);
+}
+.cal-nav-btn {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  font-size: 1.8rem;
+  font-weight: 800;
+  border-radius: 14px;
+  border: 2px solid var(--next);
+  background: #fff;
+  color: var(--next);
+  cursor: pointer;
+}
+.cal-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--locked);
+  color: var(--locked);
+}
+.cal-weekdays,
+.cal-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-days {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.cal-weekday {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.cal-day {
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 2px solid #d5dcf2;
+  background: #f4f6ff;
+  padding: 2px;
+}
+.cal-day[data-in-month="false"] {
+  background: #fff;
+  border-color: #e6e9f5;
+  color: var(--locked);
+  font-size: 0.8rem;
+}
+.cal-day-num {
+  font-weight: 800;
+  font-size: 1rem;
+}
+.cal-day-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.cal-day[data-goal="true"] {
+  background: #d9f7ec;
+  border-color: var(--success);
+}
+.cal-day[data-goal="true"] .cal-day-count {
+  color: #046b50;
+}
+.cal-day[data-today="true"] {
+  border-color: var(--next);
+  box-shadow: 0 0 0 2px var(--next);
+}
+.cal-day[data-future="true"] .cal-day-count {
+  visibility: hidden;
+}
+.cal-footer {
+  margin: 12px 0 0;
+  font-weight: 700;
+  color: var(--ink-soft);
+}

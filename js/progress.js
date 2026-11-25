@@ -23,6 +23,39 @@ export const DEFAULT_WORDS_PER_LEVEL = 10;
 export const MIN_WORDS_PER_LEVEL = 5;
 export const MAX_WORDS_PER_LEVEL = 20;
 
+/** Daily-streak ("racha de días") goal: words read well per day (configurable). */
+export const DEFAULT_STREAK_GOAL = 10;
+export const MIN_STREAK_GOAL = 1;
+export const MAX_STREAK_GOAL = 100;
+
+/**
+ * Coerce + clamp a stored/entered streak goal to an integer in [MIN..MAX],
+ * defaulting on anything non-numeric. Pure.
+ * @param {*} n
+ * @returns {number}
+ */
+export function clampStreakGoal(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return DEFAULT_STREAK_GOAL;
+  return Math.max(MIN_STREAK_GOAL, Math.min(MAX_STREAK_GOAL, v));
+}
+
+/**
+ * Coerce an arbitrary stored value into a clean `{ "YYYY-MM-DD": count }` map.
+ * Drops malformed keys and non-positive / non-numeric counts. Pure.
+ * @param {*} raw
+ * @returns {Object<string, number>}
+ */
+function normalizeHistory(raw) {
+  const out = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [k, v] of Object.entries(raw)) {
+    const n = Math.floor(Number(v));
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Number.isFinite(n) && n > 0) out[k] = n;
+  }
+  return out;
+}
+
 /**
  * Coerce + clamp an arbitrary stored/entered value to a valid integer
  * words-per-level in [MIN..MAX], defaulting on anything non-numeric. Pure.
@@ -58,6 +91,8 @@ export function freshState() {
     lalo: { color: "sky", accessories: [] },
     // Iteration 9 (D8 / AC-M8): background-music toggle, default OFF.
     music: false,
+    // Adult-enabled spoken praise ("Lalo habla los elogios"), default OFF.
+    praiseVoice: false,
     streak: 0,
     bestStreak: 0,
     stars: 0,
@@ -65,6 +100,14 @@ export function freshState() {
     levels: {},
     stickers: [],
     dailyGoal: { date: "", progress: 0, target: DEFAULT_DAILY_TARGET },
+    // Daily streak ("racha de días"): `history` maps local date → words read
+    // well that day; `dayStreak` counts days the goal was met. A missed day
+    // never resets it — it just doesn't add (see recordPractice).
+    history: {},
+    dayStreak: 0,
+    bestDayStreak: 0,
+    lastStreakDate: "",
+    streakGoal: DEFAULT_STREAK_GOAL,
   };
 }
 
@@ -149,6 +192,21 @@ export function migrate(raw) {
   merged.lalo = normalizeLalo(raw.lalo, base.lalo);
   // `music` is a boolean; a missing / non-boolean value defaults OFF.
   merged.music = typeof raw.music === "boolean" ? raw.music : base.music;
+  // `praiseVoice` is a boolean; missing / non-boolean defaults OFF.
+  merged.praiseVoice =
+    typeof raw.praiseVoice === "boolean" ? raw.praiseVoice : base.praiseVoice;
+  // Daily-streak fields: validate each so corrupt data can't break the calendar.
+  merged.history = normalizeHistory(raw.history);
+  const nonNeg = (v) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+  merged.dayStreak = nonNeg(raw.dayStreak);
+  merged.bestDayStreak = Math.max(nonNeg(raw.bestDayStreak), merged.dayStreak);
+  merged.lastStreakDate =
+    typeof raw.lastStreakDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.lastStreakDate)
+      ? raw.lastStreakDate
+      : "";
+  merged.streakGoal = clampStreakGoal(
+    raw.streakGoal === undefined ? base.streakGoal : raw.streakGoal
+  );
   // Normalise item records so every item has all fields.
   for (const id of Object.keys(merged.items)) {
     merged.items[id] = { ...freshItem(), ...merged.items[id] };
@@ -273,6 +331,79 @@ export function bumpDailyGoal(state, by = 1, today = new Date()) {
   const t = state.dailyGoal.target || DEFAULT_DAILY_TARGET;
   state.dailyGoal.progress = Math.min(t, state.dailyGoal.progress + by);
   return state;
+}
+
+/**
+ * Record one properly-read word for today in the practice history and update
+ * the daily streak. The first time today's count reaches `streakGoal`, the
+ * streak grows by exactly one (once per day). Days without reaching the goal
+ * never reset the streak; it simply doesn't grow until the goal is met again.
+ * Pure (mutates + returns state).
+ * @param {object} state
+ * @param {Date|number} [today]
+ * @returns {{state: object, count: number, streakAdded: boolean}}
+ */
+export function recordPractice(state, today = new Date()) {
+  const key = localDateKey(today);
+  if (!state.history || typeof state.history !== "object") state.history = {};
+  state.history[key] = (state.history[key] || 0) + 1;
+
+  const goal = clampStreakGoal(state.streakGoal);
+  let streakAdded = false;
+  if (state.history[key] >= goal && state.lastStreakDate !== key) {
+    state.dayStreak = (state.dayStreak || 0) + 1;
+    state.lastStreakDate = key;
+    if (state.dayStreak > (state.bestDayStreak || 0)) state.bestDayStreak = state.dayStreak;
+    streakAdded = true;
+  }
+  return { state, count: state.history[key], streakAdded };
+}
+
+/**
+ * Build a Monday-first calendar grid for a month. Always whole weeks; cells
+ * outside the month are flagged `inMonth: false` (shown dimmed, no count).
+ * Pure.
+ * @param {number} year full year, e.g. 2026
+ * @param {number} month 0-based month (0 = January)
+ * @param {Object<string, number>} history date → words practiced
+ * @param {number} goal words needed for a "goal day"
+ * @param {Date|number} [today]
+ * @returns {{year:number, month:number, weeks:object[][], totalWords:number, goalDays:number}}
+ */
+export function monthCalendar(year, month, history, goal, today = new Date()) {
+  const hist = history || {};
+  const todayKey = localDateKey(today);
+  const first = new Date(year, month, 1);
+  const lead = (first.getDay() + 6) % 7; // Monday = 0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const total = Math.ceil((lead + daysInMonth) / 7) * 7;
+
+  const cells = [];
+  let totalWords = 0;
+  let goalDays = 0;
+  for (let i = 0; i < total; i += 1) {
+    const d = new Date(year, month, 1 - lead + i);
+    const key = localDateKey(d);
+    const inMonth = d.getMonth() === month && d.getFullYear() === year;
+    const count = inMonth ? hist[key] || 0 : 0;
+    const goalMet = inMonth && count >= goal;
+    if (inMonth) {
+      totalWords += count;
+      if (goalMet) goalDays += 1;
+    }
+    cells.push({
+      key,
+      day: d.getDate(),
+      inMonth,
+      count,
+      goalMet,
+      isToday: key === todayKey,
+      isFuture: key > todayKey,
+    });
+  }
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return { year, month, weeks, totalWords, goalDays };
 }
 
 // ---- localStorage access (guarded; the only impure part) --------------------
